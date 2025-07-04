@@ -406,10 +406,10 @@ if __name__ == "__main__":
         ax1[1].plot(px[ii]*0.044,py[ii]*0.044,'+', mew=2.0, ms=8.0, color=colors[ii])
         
         ax2[0].plot(dh.wav[dh.idx]+cw, dh.dat[py[ii],px[ii],dh.idx] + (ii-1)*0.25, '.',color=colors[ii], mew=1.0, ms=1.0)
-        ax2[0].plot(dh.wav[dh.idx]+cw, dh.dat[py[ii],px[ii], dh.idx] + (ii-1)*0.25, '-',color=colors[ii], linewidth=1.0)
+        ax2[0].plot(dh.wav[dh.idx]+cw, hsyn[py[ii],px[ii], dh.idx] + (ii-1)*0.25, '-',color=colors[ii], linewidth=1.0)
 
         ax2[1].plot(dl.wav[dl.idx][1::2]+cw, dl.dat[py[ii],px[ii],dl.idx][1::2] + (ii-1)*0.25, '.',color=colors[ii], mew=1.0, ms=1.0)
-        ax2[1].plot(dl.wav[dl.idx][1::2]+cw, dl.dat[py[ii],px[ii],dl.idx][1::2] + (ii-1)*0.25, '-',color=colors[ii], linewidth=1.0)
+        ax2[1].plot(dl.wav[dl.idx][1::2]+cw, lsyn[py[ii],px[ii],dl.idx][1::2] + (ii-1)*0.25, '-',color=colors[ii], linewidth=1.0)
 
     ax2[1].set_xlabel(r"wavelength [$\mathrm{\AA}$]")
     ax2[0].set_ylabel(r"HRE intensity")
