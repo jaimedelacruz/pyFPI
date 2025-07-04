@@ -391,6 +391,31 @@ if __name__ == "__main__":
 
     ax1[0].set_ylabel("y [arcsec]")
     ax1[4].set_ylabel("y [arcsec]")
+
+
     
-    f.savefig("fig_results.pdf", dpi=250, format="pdf")
+    # select three random pixels and plot the fits
+    
+    f2, ax2 = plt.subplots(nrows=2, figsize=(4,4), sharex=True)
+
+    px = np.clip(np.int32(np.random.uniform(low=0,high=nx-1,size=3) + 0.5), 0, nx-1)
+    py = np.clip(np.int32(np.random.uniform(low=0,high=ny-1,size=3) + 0.5), 0, ny-1)
+
+    colors = ["dodgerblue", "orangered", "black"]
+    for ii in range(len(px)):
+        ax1[1].plot(px[ii]*0.044,py[ii]*0.044,'+', mew=2.0, ms=8.0, color=colors[ii])
+        
+        ax2[0].plot(dh.wav[dh.idx]+cw, dh.dat[py[ii],px[ii],dh.idx] + (ii-1)*0.25, '.',color=colors[ii], mew=1.0, ms=1.0)
+        ax2[0].plot(dh.wav[dh.idx]+cw, dh.dat[py[ii],px[ii], dh.idx] + (ii-1)*0.25, '-',color=colors[ii], linewidth=1.0)
+
+        ax2[1].plot(dl.wav[dl.idx][1::2]+cw, dl.dat[py[ii],px[ii],dl.idx][1::2] + (ii-1)*0.25, '.',color=colors[ii], mew=1.0, ms=1.0)
+        ax2[1].plot(dl.wav[dl.idx][1::2]+cw, dl.dat[py[ii],px[ii],dl.idx][1::2] + (ii-1)*0.25, '-',color=colors[ii], linewidth=1.0)
+
+    ax2[1].set_xlabel(r"wavelength [$\mathrm{\AA}$]")
+    ax2[0].set_ylabel(r"HRE intensity")
+    ax2[1].set_ylabel(r"LRE intensity")
+    
+    f2.set_tight_layout(True)
+    f.savefig("fig_results_2D.pdf", dpi=250, format="pdf")
+    f2.savefig("fig_results_fits.pdf", dpi=250, format="pdf")
     
