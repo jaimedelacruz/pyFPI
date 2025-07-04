@@ -223,7 +223,7 @@ class Data:
 if __name__ == "__main__":
 
     # Some parameters
-    nthreads = 25 # number of threads to use
+    nthreads = 10 # number of threads to use
     cw = 6302.0
     fpi_method = 2 # 0=perpendicular incidence, 1: conv approximation, 2: full calculation
 
