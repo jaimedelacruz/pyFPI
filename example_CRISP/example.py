@@ -85,19 +85,19 @@ def initCavityMaps(cw, hwav, dh, lwav, dl, hc = 7871198.0, lc = 2955638.0):
             
             nsum += 1
             
-    # remove mean shift HRE
+    # remove mean shift HRE and convert to cavity separation
     himean /= nsum 
     p = np.argmin(himean)
     cc = parab_fit(hwav[p-1:p+2], himean[p-1:p+2])
     hcmap -=  -0.5 * cc[1]/cc[2]
-    hcmap = - hcmap  * (hc / cw)
+    hcmap *= - (hc / cw)
     
-    # remove mean shift LRE
+    # remove mean shift LRE and convert to cavity separation
     limean /= nsum 
     p = np.argmax(limean)
     cc = parab_fit(lwav[p-1:p+2], limean[p-1:p+2])
     lcmap -=  -0.5 * cc[1]/cc[2]
-    lcmap = - lcmap  * (hc / cw)
+    lcmap *= -(lc / cw)
 
     
     # compensate the LRE cmap from the HRE shift
