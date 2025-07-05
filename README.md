@@ -54,3 +54,5 @@ mv pyFPI.*.so /destination/folder/
 
 It must be possible to install all the packages with anaconda python (use miniforge and mamba in that case), but I have not done it myself.
 
+## Acknowledgements
+This project has received funding from the European Research Council (ERC) under the Horizon Europe programme (MAGHEAT, grant agreement 101088184). This research has been partly supported by a grant for research infrastructures from the Swedish Research Council (registration number 2023-00169).
