@@ -96,7 +96,9 @@ namespace fpi{
     
     // -------------------------------------------------------------- //
     
-    FPI(ft const icw, ft const iFR, ft const ishr, ft const islr, int const iNRAYS_HR, int const iNRAYS_LR);
+    FPI(ft const icw, ft const iFR, ft const ishr, ft const islr,
+	ft const irh, ft const irl,
+	int const iNRAYS_HR, int const iNRAYS_LR);
 
     // -------------------------------------------------------------- //
 
@@ -107,7 +109,8 @@ namespace fpi{
     void dual_fpi_conv(int const N1, const ft* const tw,
 		       ft* const tr,
 		       ft const erh, ft const erl,
-		       ft const ech, ft const ecl, bool const normalize)const;
+		       ft const ech, ft const ecl,
+		       bool const normalize)const;
     
     // -------------------------------------------------------------- //
 
@@ -158,7 +161,7 @@ namespace fpi{
 
     // -------------------------------------------------------------- //
 
-    ft getFWHM()const;
+    ft getFWHM(int const approximation)const;
     
     // -------------------------------------------------------------- //
 

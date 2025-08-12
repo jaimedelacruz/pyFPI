@@ -39,10 +39,12 @@
 
 #include <cmath>
 #include <cstring>
+#include <vector>
+#include <cstdio>
 
 #include "fpi.hpp"
 #include "fpi_helper.hpp"
-
+#include "math.hpp"
 
 // ********************************************************************* //
 
@@ -248,9 +250,11 @@ void fpi::FPI::set_reflectivities(ft const ihr, ft const ilr)
 
 // ********************************************************************* //
 
-fpi::FPI::FPI(ft const icw, ft const iFR, ft const shr, ft const slr, int const iNRAYS_HR, int const iNRAYS_LR):
-  cw(icw), FR(iFR), hc(0), lc(0), lc_tilted(0), hfsr(0), lfsr(0), lr(0), hr(0), BlueShift(0),\
-  NRAYS_HR(iNRAYS_HR), NRAYS_LR(iNRAYS_LR), calp{}, wng{}, 
+fpi::FPI::FPI(ft const icw, ft const iFR, ft const shr, ft const slr,
+	      ft const ihr, ft const ilr,
+	      int const iNRAYS_HR, int const iNRAYS_LR):
+  cw(icw), FR(iFR), hc(0), lc(0), lc_tilted(0), hfsr(0), lfsr(0), lr(ilr), hr(ihr),
+  BlueShift(0), NRAYS_HR(iNRAYS_HR), NRAYS_LR(iNRAYS_LR), calp{}, wng{}, 
   n_betah(), betah_lr(iNRAYS_LR), betah_hr(iNRAYS_HR),
   convolver(nullptr), convolver2(nullptr)
 {
@@ -262,13 +266,6 @@ fpi::FPI::FPI(ft const icw, ft const iFR, ft const shr, ft const slr, int const 
 
   constexpr ft const TILT_HR = ft(0);
   constexpr ft const TILT_LR = ft(1); // in units of 0.5/FR;
-  
-  
-  // --- interpolate reflectivity tables at cw --- //
-  
-  lr = crisp::CRISP_REF_LRE<ft>.interpolate(cw);
-  hr = crisp::CRISP_REF_HRE<ft>.interpolate(cw);
-
   
 
   // --- center the transmission peaks at cw --- //
@@ -566,12 +563,40 @@ void fpi::FPI::dual_fpi_ray_der(int const N1, const ft* const tw,
 
 // ********************************************************************* //
 
-ft fpi::FPI::getFWHM()const
+ft fpi::FPI::getFWHM(int const approximation)const
 {
   constexpr const ft n_hre = 1;
-  
-  ft const Fr = PI * std::sqrt(hr) / (ft(1) - hr);
-  return mth::SQ(cw) / (ft(2) * Fr * n_hre * hc);
+
+  if(approximation == 0){
+    ft const Fr = PI * std::sqrt(hr) / (ft(1) - hr);
+    return mth::SQ(cw) / (ft(2) * Fr * n_hre * hc);
+  }else{
+    constexpr const int nwav = 150;
+    std::vector<double> tw = fpi::linspace<double>(-0.8,0.0,nwav);
+    std::vector<double> tw1 = fpi::linspace<double>(0.8,0.0,nwav); // reverse the order for interpolation
+
+    std::vector<double> tr(nwav,0.0);
+    std::vector<double> tr1(nwav,0.0);
+    
+    dual_fpi_full(nwav, tw.data(), tr.data(), 0.0, 0.0, 0.0 ,0.0, false);
+    dual_fpi_full(nwav, tw1.data(), tr1.data(), 0.0, 0.0, 0.0 ,0.0, false);
+    
+    double tr_ma = tr[0];
+
+    for(int ii=1; ii<nwav; ++ii){
+      tr_ma = std::max(tr[ii],tr_ma);
+    }
+    
+    
+    double w_blue = 0.0, w_red = 0.0;
+    double const tr_mid = tr_ma*0.5;
+    
+    mth::interpolation_Linear<double>(nwav, tr.data(), tw.data(), 1, &tr_mid, &w_blue);
+    mth::interpolation_Linear<double>(nwav, tr1.data(), tw1.data(), 1, &tr_mid, &w_red);
+    
+    return w_red-w_blue;
+    
+  }
 }
 
 // ********************************************************************* //

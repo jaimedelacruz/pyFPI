@@ -11,6 +11,7 @@
    --- */
 #include <unsupported/Eigen/CXX11/Tensor>
 #include <cmath>
+#include <vector>
 
 namespace fpi{
   
@@ -321,6 +322,21 @@ namespace fpi{
   }
 
   // ********************************************************** // 
+  
+  template<typename T>
+  std::vector<T> linspace(T const mi, T const ma, long const N)
+  {
+    std::vector<T> res(N);
+    T const ran = ma-mi;
+    T const scl = ran / T(N-1);
+    
+    for(long ii=0; ii<N; ++ii)
+      res[ii] = T(ii)*scl+mi;
+    
+    return res;
+  }
+
+  // ********************************************************** //
 
 }
 

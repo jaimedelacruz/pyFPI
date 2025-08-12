@@ -30,14 +30,20 @@ cdef extern from "fftw3.h":
 cdef extern from "math.hpp" namespace "mth":
     cdef void Interpolation "mth::interpolation_Linear<double>"(int N, const double* const x,  const double* const y,
 			                                        int NN, const double* const xx, double* const yy);
-     
+
+# ********************************************************************************
+
+cdef extern from "CRISP_ref.hpp" namespace "crisp":
+    cdef void getReflectivities_CRISP1 "crisp::getReflectivities_CRISP1<double>"(double wav, double &hr, double &lr);
+    cdef void getReflectivities_CRISP2 "crisp::getReflectivities_CRISP2<double>"(double wav, double &hr, double &lr);
+    
 # ********************************************************************************
 
 cdef extern from "fpi.hpp" namespace "fpi":
     cdef cppclass FPI:
          ft hr, lr;
     
-         FPI(ft icw, ft iFR, ft shr, ft slr, int NRAYS_HR, int NRAYS_LR)
+         FPI(ft icw, ft iFR, ft shr, ft slr, ft ihr, ft ilr, int NRAYS_HR, int NRAYS_LR)
          
          
          void dual_fpi_conv(int N1, const ft* const tw, ft* const tr,
@@ -113,7 +119,7 @@ cdef extern from "fpi.hpp" namespace "fpi":
                                        bool normalize_ltr, bool normalize_htr)const;
          
          
-         ft getFWHM()const;
+         ft getFWHM(int approx)const;
          
          ft getFSR()const;
 
@@ -175,7 +181,6 @@ cdef extern from "prefilter.hpp" namespace "pref":
 
 # ********************************************************************************
 
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def PrefilterCube(ar[double,ndim=1] tw, ar[double,ndim=2] pg, ar[double,ndim=2] cw, ar[double,ndim=2] fwhm, ar[double,ndim=2] ncav, \
@@ -231,6 +236,30 @@ nthreads: number of threads to use in the calculations (int, default = 8)
                     rpref[ipix*nwav+ww] = float(prefilter(rtw[ww],rpg[ipix],rcw[ipix],rfw[ipix],rnc[ipix],rp0[ipix],rp1[ipix],rp2[ipix], 1.0))*fts[ww]
                     
     return pref
+
+# ********************************************************************************
+
+cdef getCrispVersionParameters(double wav, int version):
+    
+    cdef double hc = 0.0
+    cdef double lc = 0.0
+    cdef double hr = 0.0
+    cdef double lr = 0.0
+    cdef double fr = 0.0
+    
+    if(version == 2):
+        getReflectivities_CRISP2(wav, hr, lr)
+        hc = 787e4
+        lc = 300e4
+        fr = 140.0
+    else:
+        getReflectivities_CRISP1(wav, hr, lr)
+        hc = 787e4
+        lc = 295.5e4
+        fr = 165.0
+
+    return fr, hc, lc, hr, lr
+
 
 # ********************************************************************************
 
@@ -338,7 +367,8 @@ def DApodization(ar[double,ndim=1] tw, double cw, double fwhm):
 
 def fit_lre_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim=1] sig, \
                   ar[ft,ndim=1] wav, ar[ft,ndim=2] ech, ar[ft,ndim=2] erh, ar[float,ndim=3] pref, \
-                  int fpi_method = 2, int nrays_hr = 5, int nrays_lr = 5, int nthreads = 8):
+                  int fpi_method = 2, int nrays_hr = 5, int nrays_lr = 5, int nthreads = 8,
+                  int CRISP_version = 2):
 
     
     cdef long ny = d.shape[0]
@@ -346,6 +376,8 @@ def fit_lre_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim=1] si
     cdef long nwav = wav.size
     cdef long npar = par.shape[2]
     cdef ft dw = wav[1] - wav[0]
+
+    Fr, hc, lc, hr, lr = getCrispVersionParameters(w0, CRISP_version)
     
 
     print("[info] fit_lre_CRISP: ny={0:d}, nx={1:d}, nwav={2:d}, dw_fts={3:f}, fpi_method={4:d}".format(ny,nx,nwav,dw,fpi_method))
@@ -357,7 +389,7 @@ def fit_lre_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim=1] si
     cdef int ii = 0
 
     for ii in range(nthreads):
-        fpis.push_back(new cFPI(w0, 165.0, 787.e4, 295.5e4, nrays_hr, nrays_lr));
+        fpis.push_back(new cFPI(w0, Fr, hc, lc, hr, lr, nrays_hr, nrays_lr));
 
 
     
@@ -401,7 +433,8 @@ def fit_lre_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim=1] si
 
 
 def fit_lre_CRISP_laser(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim=1] sig, \
-                        ar[ft,ndim=1] wav, int nrays_hr = 5, int nrays_lr = 5, int nthreads = 8):
+                        ar[ft,ndim=1] wav, int nrays_hr = 5, int nrays_lr = 5, int nthreads = 8,
+                        int CRISP_version = 2):
 
     
     cdef long ny = d.shape[0]
@@ -419,8 +452,10 @@ def fit_lre_CRISP_laser(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim
     cdef vector[cFPI*] fpis;
     cdef int ii = 0
 
+    Fr, hc, lc, hr, lr = getCrispVersionParameters(w0, CRISP_version)
+
     for ii in range(nthreads):
-        fpis.push_back(new cFPI(w0, 165.0, 787.e4, 295.5e4, nrays_hr, nrays_lr));
+        fpis.push_back(new cFPI(w0, Fr, hc, lc, hr, lr, nrays_hr, nrays_lr));
 
 
     
@@ -460,7 +495,8 @@ def fit_lre_CRISP_laser(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim
 # ********************************************************************************
 
 def fit_hre_CRISP_laser(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim=1] sig, \
-                        ar[ft,ndim=1] wav, int nrays_hr = 5, int nrays_lr = 5, int nthreads = 8):
+                        ar[ft,ndim=1] wav, int nrays_hr = 5, int nrays_lr = 5, int nthreads = 8,
+                        CRISP_version = 2):
 
     
     cdef long ny = d.shape[0]
@@ -478,8 +514,11 @@ def fit_hre_CRISP_laser(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim
     cdef vector[cFPI*] fpis;
     cdef int ii = 0
 
+    Fr, hc, lc, hr, lr = getCrispVersionParameters(w0, CRISP_version)
+
+    
     for ii in range(nthreads):
-        fpis.push_back(new cFPI(w0, 165.0, 787.e4, 295.5e4, nrays_hr , nrays_lr));
+        fpis.push_back(new cFPI(w0, Fr, hc, lc, hr, lr, nrays_hr , nrays_lr));
 
 
     
@@ -522,7 +561,8 @@ def fit_hre_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim=1] si
                   ar[ft,ndim=1] wav, ar[ft,ndim=1] ftsx, ar[ft,ndim=1] ftsy, \
                   ar[int,ndim=1] fixed, ar[float,ndim=2] ecl, ar[float,ndim=2] erl, \
                   int fpi_method = 2, int nthreads=8, \
-                  int nrays_hr = 5, int nrays_lr = 5, bool no_prefilter=False):
+                  int nrays_hr = 5, int nrays_lr = 5, bool no_prefilter=False,
+                  int CRISP_version=2):
 
     cdef long ny = d.shape[0]
     cdef long nx = d.shape[1]
@@ -542,9 +582,11 @@ def fit_hre_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim=1] si
     cdef vector[cFPI*] fpis;
     cdef int ii = 0
 
+    Fr, hc, lc, hr, lr = getCrispVersionParameters(w0, CRISP_version)
+
     
     for ii in range(nthreads):
-        fpis.push_back(new cFPI(w0, 165.0, 787.e4, 295.5e4, nrays_hr, nrays_lr));
+        fpis.push_back(new cFPI(w0, Fr, hc, lc, hr, lr, nrays_hr, nrays_lr));
 
     
     
@@ -607,7 +649,8 @@ def fit_all_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] dh, ar[ft,ndim=1] s
                   ar[ft,ndim=1] wavl, ar[ft,ndim=1] ftsx, ar[ft,ndim=1] ftsy, \
                   ar[ft,ndim=1] ftsyl, ar[int,ndim=1] fixed, double dwgrid = 0.0, \
                   int fpi_method = 2, \
-                  int nthreads=8, int nrays_hr = 5, int nrays_lr = 5):
+                  int nthreads=8, int nrays_hr = 5, int nrays_lr = 5,
+                  int CRISP_version = 2):
 
     cdef long ny = dh.shape[0]
     cdef long nx = dh.shape[1]
@@ -631,9 +674,10 @@ def fit_all_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] dh, ar[ft,ndim=1] s
     cdef vector[cFPI*] fpis;
     cdef int ii = 0
 
-    
+    Fr, hc, lc, hr, lr = getCrispVersionParameters(w0, CRISP_version)
+
     for ii in range(nthreads):
-        fpis.push_back(new cFPI(w0, 165.0, 787.e4, 295.5e4, nrays_hr, nrays_lr));
+        fpis.push_back(new cFPI(w0, Fr, hc, lc, hr, lr, nrays_hr, nrays_lr));
 
     
     
@@ -704,14 +748,40 @@ cdef class CRISP:
 
     # ------------------------------------------------------
     
-    def __cinit__(self, double w0, double Fr=165.0, double hc = 787.e4, double lc = 295.5e4,
-                  double hr = -1.0, double lr = -1.0, int nrays_hr = 5, int nrays_lr = 5, verbose = True):
-        self.cfpi = new cFPI(w0, Fr, hc, lc, nrays_hr, nrays_lr);
+    def __cinit__(self, double w0, double Fr=-1.0, double hc = -1, double lc = -1,
+                  double hr = -1.0, double lr = -1.0, int nrays_hr = 5, int nrays_lr = 5, verbose = True,
+                  int version = 2):
 
-        self.cfpi.set_reflectivities(hr,lr)
+        cdef double dum = 0;
+
+        if(version == 2):
+            if(hr < 0.0):
+                getReflectivities_CRISP2(w0, hr, dum)
+            if(lr < 0.0):
+                getReflectivities_CRISP2(w0, dum, lr)
+            if(Fr < 0.0):
+                Fr = 140.0
+            if(hc < 0.0):
+                hc = 787e4
+            if(lc < 0.0):
+                lc = 300e4
+    
+        else:            
+            if(hr < 0.0):
+                getReflectivities_CRISP1(w0, hr, dum)
+            if(lr < 0.0):
+                getReflectivities_CRISP1(w0, dum, lr)
+            if(Fr < 0.0):
+                Fr = 165.0
+            if(hc < 0.0):
+                hc = 787e4
+            if(lc < 0.0):
+                lc = 295.5e4
+                
+        self.cfpi = new cFPI(w0, Fr, hc, lc, hr, lr, nrays_hr, nrays_lr);
         
         if(verbose):
-            print("[info] CRISP::__cinit__: C++ object initialized at lambda ={0:8.2f} nm, hr={3:f}, lr={4:f}, nrays_hr={1:d}, nrays_lr={2:d}".format(w0*0.1, nrays_hr, nrays_lr, self.cfpi.hr, self.cfpi.lr))
+            print("[info] CRISP{5:d}::__cinit__: C++ object initialized at lambda ={0:8.2f} nm, hr={3:f}, lr={4:f}, Fratio={6:.1f}, nrays_hr={1:d}, nrays_lr={2:d}".format(w0*0.1, nrays_hr, nrays_lr, self.cfpi.hr, self.cfpi.lr, version,Fr))
 
         
     # ------------------------------------------------------
@@ -1138,8 +1208,8 @@ cdef class CRISP:
      
     # ------------------------------------------------------
 
-    cpdef getFWHM(self):
-         return self.cfpi.getFWHM()
+    cpdef getFWHM(self, int approximation = 1):
+         return self.cfpi.getFWHM(approximation)
 
     # ------------------------------------------------------
 
