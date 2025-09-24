@@ -15,10 +15,10 @@ root_dir = str(pathlib.Path(*p.parts[0:-2]))
 
 if(plt.system() == 'Darwin'):
     root_dir = '/opt/local/' # using this one if macports are installed
-    CC = 'clang'
-    CXX= 'clang++'
+    CC = "gcc" #'clang'
+    CXX= "g++" #'clang++'
     link_opts = ["-bundle","-undefined","dynamic_lookup", "-fopenmp"]
-    comp_flags = ["-mcpu=native", "-ffp-model=fast"]
+    comp_flags = ["-mcpu=native"] #, "-ffp-model=fast"]
 else:
     root_dir = '/usr/'
     CC = 'gcc'
@@ -39,8 +39,8 @@ if(debug):
                    '-std=c++20','-fPIC','-fopenmp', '-I./src',\
                    "-DNPY_NO_DEPRECATED_API", '-pedantic', '-Wall']
 else:
-    comp_flags += ['-O3','-g0','-fstrict-aliasing',\
-                   '-std=c++20','-fPIC','-fopenmp', '-I./src', "-DNPY_NO_DEPRECATED_API",\
+    comp_flags += ['-O3','-g0','-fstrict-aliasing',"-pipe","-ffast-math",\
+                   '-std=c++20','-fopenmp', '-I./src', "-DNPY_NO_DEPRECATED_API",\
                    '-DNDEBUG',  "-flto"]
     
 
