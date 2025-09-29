@@ -583,7 +583,8 @@ def fit_hre_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim=1] si
     cdef int ii = 0
 
     Fr, hc, lc, hr, lr = getCrispVersionParameters(w0, CRISP_version)
-
+    print("[info] fit_hre_CRISP: Fratio={:.1f}, hc={:.1f}um, hr={:.3f}, lc={:.1f}um, lr={:.3f}"
+          .format(Fr, hc*1.e-4, hr, lc*1.e-4, lr))
     
     for ii in range(nthreads):
         fpis.push_back(new cFPI(w0, Fr, hc, lc, hr, lr, nrays_hr, nrays_lr));
