@@ -339,14 +339,15 @@ ft fpi::FPI::getBlueShift()const
 
   // --- create array to generate a profile --- //
   
-  constexpr const int NN = 201;
+  constexpr const int NN = 351;
   constexpr const int N2 = NN/2;
-
+  constexpr const ft dw = 0.003;
+  
   ft* const tw = new ft[NN]();
   ft* const tr = new ft[NN]();
 
   for(int ii=0; ii<NN; ++ii){
-    tw[ii] = ft(ii-N2)*ft(0.001);
+    tw[ii] = ft(ii-N2)*dw;
   }
 
   
@@ -381,7 +382,6 @@ ft fpi::FPI::getBlueShift()const
     center_of_mass += tr[ii+imax]*tw[ii+imax];
   }  
 
-  
   // ---- Normalize by the area of the profile --- //
   
   center_of_mass /= sum;
@@ -565,21 +565,34 @@ void fpi::FPI::dual_fpi_ray_der(int const N1, const ft* const tw,
 
 ft fpi::FPI::getFWHM(int const approximation)const
 {
+  
   constexpr const ft n_hre = 1;
-
+  
   if(approximation == 0){
+
+    // --- for single ray, use analytical expression --- //
+    
     ft const Fr = PI * std::sqrt(hr) / (ft(1) - hr);
     return mth::SQ(cw) / (ft(2) * Fr * n_hre * hc);
+    
   }else{
+    
+    // --- otherwise perform an interpolation to measure it! --- //
+    
     constexpr const int nwav = 150;
     std::vector<double> tw = fpi::linspace<double>(-0.8,0.0,nwav);
     std::vector<double> tw1 = fpi::linspace<double>(0.8,0.0,nwav); // reverse the order for interpolation
-
+    
     std::vector<double> tr(nwav,0.0);
     std::vector<double> tr1(nwav,0.0);
     
-    dual_fpi_full(nwav, tw.data(), tr.data(), 0.0, 0.0, 0.0 ,0.0, false);
-    dual_fpi_full(nwav, tw1.data(), tr1.data(), 0.0, 0.0, 0.0 ,0.0, false);
+    if(approximation == 1){
+      dual_fpi_conv(nwav, tw.data(), tr.data(), 0.0, 0.0, 0.0 ,0.0, false);
+      dual_fpi_conv(nwav, tw1.data(), tr1.data(), 0.0, 0.0, 0.0 ,0.0, false);
+    }else{
+      dual_fpi_full(nwav, tw.data(), tr.data(), 0.0, 0.0, 0.0 ,0.0, false);
+      dual_fpi_full(nwav, tw1.data(), tr1.data(), 0.0, 0.0, 0.0 ,0.0, false);
+    }
     
     double tr_ma = tr[0];
 

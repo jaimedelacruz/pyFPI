@@ -5,11 +5,11 @@ Author: J. de la Cruz Rodriguez (ISP-SU, 2025)
 import cython
 cimport numpy as np
 from numpy cimport ndarray as ar
-from numpy import zeros,  float64, float32, empty, power, arange, ones
+from numpy import zeros,  float64, float32, empty, power, arange, ones, linspace, interp
 from libcpp cimport bool
 from libcpp.vector cimport vector
 from cython.parallel import prange
-
+import time
 
 # ********************************************************************************
 
@@ -42,7 +42,8 @@ cdef extern from "CRISP_ref.hpp" namespace "crisp":
 cdef extern from "fpi.hpp" namespace "fpi":
     cdef cppclass FPI:
          ft hr, lr;
-    
+         ft BlueShift;
+        
          FPI(ft icw, ft iFR, ft shr, ft slr, ft ihr, ft ilr, int NRAYS_HR, int NRAYS_LR)
          
          
@@ -128,7 +129,7 @@ cdef extern from "fpi.hpp" namespace "fpi":
          void set_reflectivities(ft ihr, ft ilr);
          ft get_HRE_reflectivity()const;
          ft get_LRE_reflectivity()const;
-
+         ft getBlueShift()const;
          
 ctypedef FPI cFPI
 
@@ -140,7 +141,7 @@ cdef extern from "invert.hpp" namespace "fpi":
                                 ft* const par, float* const syn, const ft* const wav, \
 			        vector[FPI*] &fpis, const ft* const sig, const ft* const tw,
                                 const int* const fixed, int fpi_method, bool no_pref,
-                                const float* const ecl, const float* const erl) nogil;
+                                const float* const ecl, const float* const erl, bool use_observed_grid) nogil;
 
 
 
@@ -168,6 +169,9 @@ cdef extern from "invert.hpp" namespace "fpi":
 			        vector[FPI*] &fpis, const ft* const sigh, const ft* const sigl, const ft* const tw, const int* const fixed,
 			        int fpi_method, ft dwgrid) nogil;
      
+     cdef void Hermite3(int N, const double* const x, const double* const y, int N1, const double* const x1, double* const y1);
+
+     
 # ********************************************************************************
 
 cdef extern from "prefilter.hpp" namespace "pref":
@@ -179,6 +183,32 @@ cdef extern from "prefilter.hpp" namespace "pref":
      cdef double apodization "pref::apodization<double>"(double tw, double cw, double fwhm);
      cdef double dapodization "pref::Dapodization<double>"(double tw, double cw, double fwhm, double &da_dcw, double &da_dfwhm);
 
+# ********************************************************************************
+
+cpdef Hermite(ar[double,ndim=1] x, ar[double,ndim=1] y, ar[double,ndim=1] x1):
+    """
+    Cubic Hermite interpolation in 1D
+    Input:
+         x: x-values of the function (1D Numpa array, double)
+         y: y-values of the function (1D Numpy array, double)
+        x1: x-values where the function must be interpolated (1D Numpy array, double)
+
+    Output:
+         returns a 1D Numpy array with the same size as x1 containing the interpolated
+         function values
+
+    Coded by J. de la Cruz Rodriguez (ISP-SU, 2025)
+    """
+
+    cdef int N = x.size
+    cdef int N1 = x1.size
+    
+    cdef ar[double,ndim=1] y1 = zeros(N1,dtype="float64")
+    
+    Hermite3(<int>N,<double*>x.data, <double*>y.data, <int>N1, <double*>x1.data, <double*>y1.data)
+
+    return y1
+    
 # ********************************************************************************
 
 @cython.boundscheck(False)
@@ -250,7 +280,7 @@ cdef getCrispVersionParameters(double wav, int version):
     if(version == 2):
         getReflectivities_CRISP2(wav, hr, lr)
         hc = 787e4
-        lc = 300e4
+        lc = hc*0.38273 # cavity ratio from Pit's measurements # should be ~300.0/787.0
         fr = 140.0
     else:
         getReflectivities_CRISP1(wav, hr, lr)
@@ -413,12 +443,15 @@ def fit_lre_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim=1] si
 
     # --- invert LRE data ---
 
+    cdef double dt = time.time()
     invert_lre_crisp(ny, nx, npar, nwav, <float*>d.data, <ft*>par.data, <float*>syn.data, <ft*>tw.data,
                      fpis, <ft*>sig.data, <ft*>tw.data, <float*>pref.data, <ft*>ech.data, <ft*>erh.data,
                      <int>fpi_method);
+    
+    dt = time.time() - dt
+    print("[info] fit_lre_CRISP: total elapsed time -> {:.1f}s".format(dt))
 
-
-
+    
     # --- cleanup ---
 
     for ii in range(nthreads):
@@ -562,7 +595,7 @@ def fit_hre_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim=1] si
                   ar[int,ndim=1] fixed, ar[float,ndim=2] ecl, ar[float,ndim=2] erl, \
                   int fpi_method = 2, int nthreads=8, \
                   int nrays_hr = 5, int nrays_lr = 5, bool no_prefilter=False,
-                  int CRISP_version=2):
+                  int CRISP_version=2, bool use_observed_grid = False):
 
     cdef long ny = d.shape[0]
     cdef long nx = d.shape[1]
@@ -570,11 +603,6 @@ def fit_hre_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim=1] si
     cdef long npar = par.shape[2]
     cdef long nfts = ftsx.size
     cdef ft dw = (ftsx[10] - ftsx[0]) * 0.1
-
-    cdef ar[ft,ndim=1] ftsx_cw = ftsx - w0
-    cdef ar[ft,ndim=1] wav_cw = wav - w0
-
-    print("[info] fit_hre_CRISP: ny={0:d}, nx={1:d}, nwav={2:d}, nfts={3:d}, dw_fts={4:f}, fpi_method={5:d}".format(ny,nx,nwav,nfts,dw, fpi_method))
 
     
     # --- Init fpi class, one per threat ---
@@ -589,15 +617,43 @@ def fit_hre_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim=1] si
     for ii in range(nthreads):
         fpis.push_back(new cFPI(w0, Fr, hc, lc, hr, lr, nrays_hr, nrays_lr));
 
+
+    # --- Reinterpolate FTS to an wavelength appropriate grid? ---
     
+    cdef double FWHM = fpis[0].getFWHM(2);
+    cdef int nfts_new = int(round((ftsx[-1]-ftsx[0]) / max(dw, FWHM*0.2) + 1))
+
+    
+    # --- Or (upon request), use the observed wavelength grid --- 
+    
+    if(use_observed_grid == True):
+        dw = (wav[1] - wav[0])
+        nfts_new = int(round((ftsx[-1]-ftsx[0]) / dw + 1))
+        
+    cdef ar[ft,ndim=1] ftsx_new = linspace(ftsx[0], ftsx[-1], nfts_new)
+    cdef ar[ft,ndim=1] ftsy_new = Hermite(ftsx,ftsy,ftsx_new)
+    dw = ftsx_new[1]-ftsx_new[0]
+    
+    print(ftsx_new[0], ftsx_new[-1], dw)
+    
+    cdef ar[ft,ndim=1] ftsx_cw = ftsx_new - w0
+    cdef ar[ft,ndim=1] wav_cw = wav - w0
+    
+    print("[info] fit_hre_CRISP: ny={0:d}, nx={1:d}, nwav={2:d}, nfts={3:d}, dw_fts={4:f}, fpi_method={5:d}".format(ny,nx,nwav,nfts_new, dw, fpi_method))
+            
     
     # --- Estimate number of points for the fpi PSF and create tw array --- 
 
     cdef ft FSR = fpis[0].getFSR()
     cdef int npsf = round(2.25*fpis[0].getFSR() / dw)
-    if(npsf > nfts):
+    if(npsf > nfts_new):
+        npsf = nfts_new
+        
+        if(npsf%2 == 0):
+            npsf -= 1
+            
         print("[warning] fit_hre_CRISP: the input FTS atlas does not cover +/- one FSR!")
-        npsf = nfts
+        print("          -> psf will cover Dlambda = {:.2f}".format(npsf//2*dw))
         
     
     if(npsf%2 == 0):
@@ -612,12 +668,13 @@ def fit_hre_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim=1] si
     # --- Init the FFW3 convolver --- 
     
     for ii in range(nthreads):
-        fpis[ii].init_convolver(nfts, npsf)
+        fpis[ii].init_convolver(nfts_new, npsf)
 
 
     # --- if no_prefilter, make sure you fix the prefilter parameters ---
 
     if(no_prefilter):
+        
         fixed[3] = 1
         fixed[4] = 1
         fixed[5] = 1
@@ -629,10 +686,15 @@ def fit_hre_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim=1] si
     cdef ar[float,ndim=3] syn = zeros((ny,nx,nwav),dtype=float32)
 
 
-    invert_hre_crisp(ny,nx,npar,nwav,nfts,<ft*>ftsx_cw.data,<ft*>ftsy.data,<float*>d.data,<ft*>par.data,\
-                     <float*>syn.data,<ft*>wav_cw.data,fpis,<ft*>sig.data, <ft*>tw.data, <int*>fixed.data,\
-                     <int>fpi_method, <bool>no_prefilter, <float*>ecl.data, <float*>erl.data)
+    cdef double dt = time.time()
     
+    invert_hre_crisp(ny,nx,npar,nwav,nfts_new,<ft*>ftsx_cw.data,<ft*>ftsy_new.data,<float*>d.data,<ft*>par.data,\
+                     <float*>syn.data,<ft*>wav_cw.data,fpis,<ft*>sig.data, <ft*>tw.data, <int*>fixed.data,\
+                     <int>fpi_method, <bool>no_prefilter, <float*>ecl.data, <float*>erl.data, <bool>use_observed_grid)
+    
+    dt = time.time() - dt
+    print("[info] fit_hre_CRISP: total elapsed time -> {:.1f}s".format(dt))
+
     
     # --- cleanup pointers ----
 
@@ -1225,5 +1287,9 @@ cdef class CRISP:
     
     # ------------------------------------------------------
 
+    def getBlueShift(self):
+        cdef double blueShift = self.cfpi.BlueShift
+        return blueShift
+    
 # ********************************************************************************
 
