@@ -23,10 +23,10 @@ namespace pref{
   inline constexpr T const PI_2 = 3.1415926535897932384626433832 * 0.5;
   
   template<typename T>
-  inline constexpr T const fwhm_scale = 0.3; // 0.35
+  inline constexpr T const fwhm_scale = 2.0; // 0.35
 
   template<typename T>
-  inline constexpr T const fwhm_frac = 1.0 / 4.0; // 1.0 / 5.0
+  inline constexpr T const fwhm_frac = 1.0 / 2.0; // 1.0 / 5.0
 
   template<typename T>
   inline constexpr T const decay = (fwhm_scale<T> + fwhm_frac<T>) / fwhm_frac<T>;

@@ -29,11 +29,11 @@ pscl = {1.0, 50., 0.01, 1.0, 1.0, 1.0, 0.1, 0.1, 0.1, 1.0, 50., 0.01};
 
 template<typename T>
 constexpr inline static const std::array<T,12>
-pmax = {100.0, 300., 0.05, 1.0, 9.0, 3.0, 0.6, 0.2, 0.2, 10000, 300., 0.05};
+pmax = {100.0, 300., 0.05, 3.0, 9.0, 3.5, 0.6, 0.2, 0.2, 10000, 500., 0.05};
 
 template<typename T>
 constexpr inline static const std::array<T,12>
-pmin = {1.e-10, -300., -0.05, -1.0, 1.0, 1.4, -0.6, -0.2, -0.2, 1.e-5, -300., -0.05};
+pmin = {1.e-10, -300., -0.05, -3.0, 1.0, 1.4, -0.6, -0.2, -0.2, 1.e-5, -500., -0.05};
 
 
 
@@ -44,14 +44,14 @@ void fpi::invert_hre_crisp(long const ny, long const nx, long const npar, long c
 			   float* const syn, const ft* const wav,		\
 			   std::vector<fpi::FPI*> &fpis, const ft* const sig, const ft* const tw,
 			   const int* const fixed, int const fpi_method, bool const no_pref, const float* const ecl,
-			   const float* const erl)
+			   const float* const erl, bool const use_observed_grid)
 {
   constexpr const long npar_fixed = 9;
   constexpr const int max_iter = 30;
   constexpr const ft chi_lim = 0.0;
   constexpr const int delay_bracket = 4;
   constexpr const ft I_THRES = 8.e-2;
-  constexpr const ft init_lambda = 100.;
+  constexpr const ft init_lambda = 10.;
 
   
   // --- the parameters must be gain fractor, ech, erh, pr_w0, pr_fwhm, asym --- //
@@ -98,19 +98,16 @@ void fpi::invert_hre_crisp(long const ny, long const nx, long const npar, long c
       
       lm::container_base<ft,float>* const myData =
 	new lm::container_hre_fit<ft,float>(nwav, *fpis[tid], d, sig, inverters[tid]->Pinfo,
-					    nfts, fts_x, fts_y, wav, tw, fpi_method, no_pref, 0.0, 0.0);
+					    nfts, fts_x, fts_y, wav, tw, fpi_method, no_pref, 0.0, 0.0, use_observed_grid);
       
 
 #pragma omp for schedule(dynamic,20)
       for( ipix = 0; ipix<npix; ++ipix){
-
+	
 	// --- Assign pixel data to this thread --- //
 	
 	myData->d = d + ipix*nwav;
-
-	((lm::container_hre_fit<ft,float>*)myData)->ecl = ft(ecl[ipix]);
-	((lm::container_hre_fit<ft,float>*)myData)->erl = ft(erl[ipix]);
-
+	
 	
 	// --- calculate the mean intensity of the pixel --- //
 	
@@ -121,13 +118,15 @@ void fpi::invert_hre_crisp(long const ny, long const nx, long const npar, long c
 	
 
 	// --- only perform the inversion if the mean intensity is significant,
-	//     otherwise we assume that we are seeing the field stopper --- //
+	//     otherwise we assume that we are seeing the field-stopper --- //
        
 	if(imax > I_THRES){
-	    
-	
+	  
+	  ((lm::container_hre_fit<ft,float>*)myData)->ecl = ft(ecl[ipix]);
+	  ((lm::container_hre_fit<ft,float>*)myData)->erl = ft(erl[ipix]);
+	  
 	  inverters[tid]->fitData(*myData, nwav, syn+ipix*nwav, par+ipix*npar, max_iter,
-				  init_lambda, chi_lim,  ft(1.e-3), delay_bracket, false);
+				  init_lambda, chi_lim,  ft(5.e-3), delay_bracket, false);
 	  
 	}else{
 	  
@@ -172,11 +171,11 @@ void fpi::invert_lre_crisp(long const ny, long const nx, long const npar, long c
 			   int const fpi_method)
 {
   constexpr const long npar_fixed = 3;
-  constexpr const int max_iter = 30;
+  constexpr const int max_iter = 40;
   constexpr const ft chi_lim = 0.0;
   constexpr const int delay_bracket = 2;
   constexpr const ft I_THRES = 8.e-2;
-  constexpr const ft init_lambda = 100.;
+  constexpr const ft init_lambda = 10.;
   
   // --- Initialize Levenberg-Marquardt class --- //
   
@@ -227,7 +226,7 @@ void fpi::invert_lre_crisp(long const ny, long const nx, long const npar, long c
 	
 	
 	  inverters[tid]->fitData( *((lm::container_base<ft,float>*)myData), nwav, syn+ipix*nwav, par+ipix*npar, max_iter,
-				   init_lambda, chi_lim,  ft(1.e-3), delay_bracket, false);
+				   init_lambda, chi_lim,  ft(5.e-3), delay_bracket, false);
 	}else{
 	  
 	  // --- Else zero the gain so we can easily create a mask later --- //
@@ -534,6 +533,95 @@ void fpi::invert_all_crisp(long const ny, long const nx, long const npar, long c
 
   
 
+}
+
+// **************************************************************************************** //
+
+double signFortran2(const double val)
+{
+  return ((val >= 0.0)? 1.0 : -1.0);
+}
+
+// **************************************************************************************** //
+
+double cent_deriv_steffen(double odx,double dx,
+		   double yu,double y0, double yd)
+{
+  /* --- Derivatives from Steffen (1990) --- */
+  
+  const double S0 = (yd - y0) / dx;
+  const double Su = (y0 - yu) / odx;
+  const double P0 = fabs((Su*dx + S0*odx) / (odx+dx)) * 0.5;
+  return (signFortran2(S0) + signFortran2(Su)) * fmin(fabs(Su),fmin(fabs(S0), P0));
+}
+
+// **************************************************************************************** //
+
+void fpi::Hermite3(int const N, const double* const __restrict__ x, const double* const __restrict__ y,
+	      int const N1, const double* const __restrict__ x1, double* const __restrict__ y1)
+{
+  // --- Coded by J. de la Cruz Rodriguez (ISP-SU, 2024) --- //
+  
+  int dn = 1, n0 = 0, n1 = N-1;
+  int dj = 1, j0 = 0, j1 = N1-1;
+  
+  if((x[1]-x[0]) < 0){
+    dn = -1, n0 = N-1, n1 = 0;
+  }
+
+  if((x1[1]-x1[0]) < 0){
+    dj = -1, j0 = N1-1, j1 = 0;
+  }
+  
+  
+  // --- first calculate derivatives --- //
+
+  double* const __restrict__ yp = new double[N]();
+  double odx = 0, dx = 0;
+  
+  
+  for(int n=n0+dn; n != n1; n+=dn){ // avoid both outermost points, there yp=0
+    odx = x[n]-x[n-dn];
+    dx = x[n+dn]-x[n];
+    yp[n] = cent_deriv_steffen(odx,dx,y[n-dn], y[n], y[n+dn]);
+  }
+
+  
+  // --- Now calculate interpolated values --- //
+    
+  for(int n=n0; n != n1; n+= dn){
+    double const dx = x[n+dn]-x[n];
+    double const ypu = yp[n]*dx;
+    double const ypc = yp[n+dn]*dx;
+    
+    for(int j=j0; j != j1+dj; j += dj){
+      if((x1[j] <= x[n+dn]) && (x1[j] > x[n])){
+	double const u  = (x1[j]-x[n])/dx;
+	double const u2 = u*u;
+	double const u3 = u2*u;
+	y1[j] = (2.0*u3 - 3.0*u2 + 1.0)*y[n] + (u3-2.0*u2+u)*ypu + (3.0*u2-2.0*u3)*y[n+dn] + (u3-u2)*ypc;
+      }
+    }
+  } // intervals in the real data 
+
+  
+  
+  // --- are there points outside the domain? --- //
+
+  double const pmin = y[n0];
+  double const pmax = y[n1];
+  double const xmin1 = x[n0];
+  double const xmax1 = x[n1];
+
+  
+  for(int j=0; j<N1; ++j){
+    if(x1[j] <= xmin1) y1[j] = pmin;
+    else if(x1[j] >= xmax1) y1[j] = pmax;
+  }
+  
+  
+  delete [] yp;
+  
 }
 
 // **************************************************************************************** //

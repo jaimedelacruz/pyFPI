@@ -27,6 +27,7 @@
 #include <algorithm>
 
 #include <Eigen/Dense>
+#include <Eigen/SVD>
 
 #include "math.hpp"
 #include "fpi.hpp"
@@ -209,19 +210,19 @@ namespace lm{
 	const T* const __restrict__ Jj = &J(jj,0);
 
 	for(int ii=0; ii<=jj; ++ii){
-	  double sum = 0.0;
 	  
 	  const T* const __restrict__ Ji = &J(ii,0);
 	  
+	  double sum = 0.0;
 	  for(int ww=0; ww<nDat; ++ww) sum += Jj[ww]*Ji[ww];
-	  A(jj,ii) = A(ii,jj) = static_cast<T>(sum);
+	  
+	  A(jj,ii) = A(ii,jj) = T(sum);
 	}//ii
 	
 		
 	// --- Compute right-hand side of the system --- //
 	
 	double sum = 0.0;
-
 	for(int ww = 0; ww<nDat; ww++) sum += Jj[ww] * r[ww];
 	B[jj] = static_cast<T>(sum); 
 	
@@ -232,10 +233,10 @@ namespace lm{
       
       // --- Solve linear system to get solution --- //
       
-      Eigen::ColPivHouseholderQR<Mat> sy(A); // Also rank revealing but much faster than SVD
-      //Eigen::BDCSVD<Mat> sy(A,Eigen::ComputeThinU | Eigen::ComputeThinV);
-      sy.setThreshold(1.e-14);
-      
+      //Eigen::ColPivHouseholderQR<Mat> sy(A); // Also rank revealing but much faster than SVD
+      Eigen::JacobiSVD<Mat> sy(A,Eigen::ComputeThinU | Eigen::ComputeThinV); // Also rank revealing but much faster than SVD
+
+      //sy.setThreshold(1.e-14);
       Vec dm = sy.solve(B);
 
       // --- Copy parameters from non-fixed subspace to a nPar vector --- //
@@ -297,12 +298,12 @@ namespace lm{
       T bestChi2     = 1.e32;
       T     Chi2     = 1.e32;
       
-      T* __restrict__ bestModel  = new T [cPar]();
-      T* __restrict__ bestSyn    = new T [nDat]();      
-      T* __restrict__ syn        = new T [nDat]();      
+      T* const __restrict__ bestModel  = new T [cPar]();
+      T* const __restrict__ bestSyn    = new T [nDat]();      
+      T* const __restrict__ syn        = new T [nDat]();      
 
-      T* __restrict__     J      = new T [cPar*nDat]();
-      T* __restrict__     r      = new T [nDat]();
+      T* const __restrict__     J      = new T [cPar*nDat]();
+      T* const __restrict__     r      = new T [nDat]();
 
 
       

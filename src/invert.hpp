@@ -15,7 +15,7 @@ namespace fpi{
 			const ft* const fts_x, const ft* const fts_y, const float* const d, ft* const par, \
 			float* const syn, const ft* const wav,		\
 			std::vector<fpi::FPI*> &fpis, const ft* const sig, const ft* const tw, const int* const fixed,
-			int const fpi_method, bool const no_pref, const float* const ecl, const float* const erl);
+			int const fpi_method, bool const no_pref, const float* const ecl, const float* const erl, bool const use_observed_grid);
 
 
   void invert_lre_crisp(long const ny, long const nx, long const npar, long const nwav, \
@@ -43,6 +43,9 @@ namespace fpi{
 			std::vector<fpi::FPI*> &fpis, const ft* const sigh, const ft* const sigl, const ft* const tw, const int* const fixed,
 			int const fpi_method, ft const dwgrid);
 
+
+  void Hermite3(int const N,  const double* const x, const double* const y,
+		int const N1, const double* const x1,      double* const y1);
   
 }
 
