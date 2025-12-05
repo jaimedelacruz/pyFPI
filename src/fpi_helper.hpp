@@ -28,7 +28,7 @@ namespace fpi{
   
   // ********************************************************** //
 
-  template<typename T>
+  template<typename T> 
   inline T max(long const N, const T* const __restrict__ var)
   {
     T mmax = var[0];
@@ -40,7 +40,7 @@ namespace fpi{
 
   // ********************************************************** //
 
-  template<typename T>
+  template<typename T> 
   inline T min(long const N, const T* const __restrict__ var)
   {
     T mmin = var[0];
@@ -52,7 +52,7 @@ namespace fpi{
   
   // ********************************************************** // 
 
-  template<typename T>
+  template<typename T> 
   inline T sum(Arr2D<T> const& var){
 
     const T* const __restrict__ data = &var(0,0);
@@ -65,7 +65,7 @@ namespace fpi{
     
   // ********************************************************** // 
 
-  template<typename T>
+  template<typename T> 
   inline T sum(Arr3D<T> const& var){
     const T* const __restrict__ data = &var(0,0,0);
 
@@ -76,7 +76,7 @@ namespace fpi{
   }
   // ********************************************************** //
   
-  template<typename T>
+  template<typename T> 
   inline T max(Arr2D<T> const& var){
     const T* const __restrict__ data = &var(0,0);
 
@@ -88,7 +88,7 @@ namespace fpi{
 
   // ********************************************************** // 
 
-  template<typename U, typename T>
+  template<typename U, typename T> inline
   Arr2D<U> aperture(int const n,  T const rc)
   {
     Arr2D<U> res(n,n); res.setZero();
@@ -110,7 +110,7 @@ namespace fpi{
   
   // ********************************************************** // 
 
-  template<typename T>
+  template<typename T> inline
   void meshgrid(int const ny, int const nx, Arr2D<T> &ymat, Arr2D<T> &xmat)
   {
     ymat = Arr2D<T>(ny,nx);
@@ -126,7 +126,7 @@ namespace fpi{
   
   // ********************************************************** //
 
-  template<typename T>
+  template<typename T> inline
   Arr1D<T> arange(long const N)
   {
     Arr1D<T> res(N);
@@ -139,11 +139,12 @@ namespace fpi{
   
   // ********************************************************** // 
 
-  template<typename T,typename U>
+  template<typename T,typename U> inline
   Arr2D<T> fp_angles(int const n_ap, Arr2D<U> const& ap, T const FR,	\
 		  T const tilt_angle)
   {
     constexpr const T PI =  3.1415926535897932384626433832;
+    
     T const ap_sum = T(sum(ap));
     T const ir_mean =  T(1) /(T(2)* std::sqrt(ap_sum / PI));
 
@@ -182,14 +183,17 @@ namespace fpi{
   
   // ********************************************************** // 
 
-  template<typename T, typename U>
+  template<typename T, typename U> inline
   void hist2D(Arr2D<U> const& ap, Arr2D<T> &betap_1, Arr2D<T> &betap_2, \
 	      int const nrays1, int const nrays2, Arr2D<T> &n_betah,
 	      Arr3D<T> &betah)
   {
-    constexpr const T n = ft(1);
+    constexpr const T n = ft(1); // air
     constexpr const T two_PI_n =  T(2)*T(3.1415926535897932384626433832)*n;
 
+    
+    // --- Make a histogram of the angles in the aperture --- //
+    
     int const nx = ap.dimension(0);
     int const nap = std::round(sum(ap));
     Arr2D<T> dum(2,nap); dum.setZero();
@@ -226,18 +230,24 @@ namespace fpi{
     
     Arr1D<long> dum1(nap); dum1.setZero();
     Arr1D<long> dum2(nap); dum2.setZero();
+
+    
+    // --- assign each angle to a bin --- //
     
     for(int ii=0;ii<nap; ++ii){
       dum1[ii] = long((dum(0,ii)-beta1_min)/dbeta1 - 1.e-10);
       dum2[ii] = long((dum(1,ii)-beta2_min)/dbeta2 - 1.e-10);
     }
     
+    // --- calculate the integration weights --- //
     
     n_betah =  Arr2D<T>(nrays2,nrays1); n_betah.setZero();
     
     for(int ii=0; ii<nap;++ii){
       n_betah(dum2[ii], dum1[ii]) += T(1);
     }
+
+    // --- Normalize the weights of each bin and take the SQRT of the angle --- //
     
     n_betah = n_betah / fpi::sum(n_betah);
     betah = Arr3D<T>(2,nrays2,nrays1);
@@ -245,6 +255,9 @@ namespace fpi{
 
     beta1 = beta1.sqrt();
     beta2 = beta2.sqrt();
+
+
+    // --- Store 2*pi*n*cos(theta) as it does not change during the calculations --- //
     
     for(int n=0;n<nrays2;++n){
       for(int m=0; m<nrays1; ++m){
@@ -257,14 +270,10 @@ namespace fpi{
   
   // ********************************************************** // 
 
-  template<typename T>
+  template<typename T> inline
   Arr2D<T> get_psi2(int const nw, T const w0, const T* const dw, \
 		    T const h,   Arr1D<T> beta1)
   {
-    //constexpr const T n = ft(1);
-    //constexpr const T two_PI_n =  T(2)*T(3.1415926535897932384626433832)*n;
-    
-    //T const  c = two_PI_n * h;
     int const nrays = beta1.size();
 
     Arr2D<T> sin2p(nrays,nw);
@@ -277,24 +286,16 @@ namespace fpi{
 	sin2p(nn,ii) = mth::SQ<T>(std::sin(cbeta / (w0+dw[ii])));
       }
     }				
-
-    //sin2p = sin2p * sin2p;
     
     return sin2p;
   }
 
   // ********************************************************** // 
   
-  template<typename T>
+  template<typename T> inline
   Arr2D<T> get_psi2_der(int const nw, T const w0, const T* const dw,	\
 			T const h,  Arr1D<T> beta1, Arr2D<T> &dsin2p)
   {
-    //constexpr const T n = ft(1);
-    //constexpr const T two_PI_n =  T(2)*T(3.1415926535897932384626433832)*n;
-    
-    //T const  c = two_PI_n * h;
-    //constexpr T const dc = two_PI_n;
-    
     int const nrays = beta1.size();
     
     Arr2D<T> sin2p(nrays,nw);
@@ -325,7 +326,7 @@ namespace fpi{
 
   // ********************************************************** // 
   
-  template<typename T>
+  template<typename T> inline
   std::vector<T> linspace(T const mi, T const ma, long const N)
   {
     std::vector<T> res(N);
