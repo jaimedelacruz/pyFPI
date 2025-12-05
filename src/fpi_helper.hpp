@@ -187,6 +187,9 @@ namespace fpi{
 	      int const nrays1, int const nrays2, Arr2D<T> &n_betah,
 	      Arr3D<T> &betah)
   {
+    constexpr const T n = ft(1);
+    constexpr const T two_PI_n =  T(2)*T(3.1415926535897932384626433832)*n;
+
     int const nx = ap.dimension(0);
     int const nap = std::round(sum(ap));
     Arr2D<T> dum(2,nap); dum.setZero();
@@ -245,12 +248,11 @@ namespace fpi{
     
     for(int n=0;n<nrays2;++n){
       for(int m=0; m<nrays1; ++m){
-	betah(0,n,m) = beta1[m];
-	betah(1,n,m) = beta2[n];
+	betah(0,n,m) = two_PI_n*std::cos(beta1[m]);
+	betah(1,n,m) = two_PI_n*std::cos(beta2[n]);
       }   
-    }
+    }    
     
-    //betah = betah.sqrt();
   }
   
   // ********************************************************** // 
@@ -259,17 +261,17 @@ namespace fpi{
   Arr2D<T> get_psi2(int const nw, T const w0, const T* const dw, \
 		    T const h,   Arr1D<T> beta1)
   {
-    constexpr const T n = ft(1);
-    constexpr const T two_PI_n =  T(2)*T(3.1415926535897932384626433832)*n;
+    //constexpr const T n = ft(1);
+    //constexpr const T two_PI_n =  T(2)*T(3.1415926535897932384626433832)*n;
     
-    T const  c = two_PI_n * h;
+    //T const  c = two_PI_n * h;
     int const nrays = beta1.size();
 
     Arr2D<T> sin2p(nrays,nw);
 
 
     for(int nn=0; nn<nrays; ++nn){
-      T const cbeta = c * std::cos(beta1[nn]);
+      T const cbeta = h*beta1[nn];//c * std::cos(beta1[nn]);
       
       for(int ii=0; ii<nw; ++ii){
 	sin2p(nn,ii) = sin(cbeta / (w0+dw[ii]));
@@ -287,11 +289,11 @@ namespace fpi{
   Arr2D<T> get_psi2_der(int const nw, T const w0, const T* const dw,	\
 			T const h,  Arr1D<T> beta1, Arr2D<T> &dsin2p)
   {
-    constexpr const T n = ft(1);
-    constexpr const T two_PI_n =  T(2)*T(3.1415926535897932384626433832)*n;
+    //constexpr const T n = ft(1);
+    //constexpr const T two_PI_n =  T(2)*T(3.1415926535897932384626433832)*n;
     
-    T const  c = two_PI_n * h;
-    constexpr T const dc = two_PI_n;
+    //T const  c = two_PI_n * h;
+    //constexpr T const dc = two_PI_n;
     
     int const nrays = beta1.size();
     
@@ -301,9 +303,9 @@ namespace fpi{
 
     for(int nn=0; nn<nrays; ++nn){
       
-      T const cost =  std::cos(beta1[nn]);
-      T const cbeta = c * cost;
-      T const dcbeta = dc * cost;
+      T const cost =  beta1[nn]; //std::cos(beta1[nn]);
+      T const cbeta = h * cost;
+      T const dcbeta = cost;
       
       for(int ii=0; ii<nw; ++ii){
 	T const iw = ft(1) / (w0+dw[ii]);

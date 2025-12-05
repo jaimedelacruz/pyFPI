@@ -336,65 +336,23 @@ fpi::FPI::FPI(ft const icw, ft const iFR, ft const shr, ft const slr,
 
 ft fpi::FPI::getBlueShift()const
 {
+  // --- For each ray, the blueshift is given by lam = w*cos(theta)*lam0 --- //
 
-  // --- create array to generate a profile --- //
+  ft dlam = ft(0);
+  ft norm = ft(0);
   
-  constexpr const int NN = 351;
-  constexpr const int N2 = NN/2;
-  constexpr const ft dw = 0.003;
-  
-  ft* const tw = new ft[NN]();
-  ft* const tr = new ft[NN]();
+  // --- note that calp_i = cos(theta_i) * 2pi, we must compensate the 2pi factor --- //
 
-  for(int ii=0; ii<NN; ++ii){
-    tw[ii] = ft(ii-N2)*dw;
+  for(int ii=0; ii<fpi::NRAYS; ++ii){
+    dlam += wng[ii]*calp[ii];
+    norm += wng[ii];
   }
 
+  // --- The wavelength shift is then 
+  dlam /= two_pi * norm;
+  dlam = (dlam - ft(1)) * cw;
   
-  // --- generate the FPI transmission profile --- //
-  
-  dual_fpi_full(NN, tw, tr,0.0, 0.0, 0.0, 0.0,false);
-
-
-
-  // --- Find the maximum, should be close to N2, but not exactly --- //
-  
-  ft center_of_mass = 0.0;
-  ft sum = 0.0;
-
-  int imax = 0;
-  ft vmax = tr[0];
-  
-  for(int ii=1; ii<NN; ++ii){
-    if(vmax < tr[ii]){
-      imax = ii;
-      vmax = tr[ii];
-    }
-  }
-
-  // --- integrate symmetrically to get the center of mass --- //
-  
-  for(int ii=0; ii<imax; ++ii){
-    sum += tr[ii];
-    center_of_mass += tr[ii]*tw[ii];
-
-    sum += tr[ii+imax];
-    center_of_mass += tr[ii+imax]*tw[ii+imax];
-  }  
-
-  // ---- Normalize by the area of the profile --- //
-  
-  center_of_mass /= sum;
-
-
-
-  // --- cleanup --- //
-  
-  delete [] tw;
-  delete [] tr;
-
-  
-  return center_of_mass;
+  return dlam;
 }
 
 // ********************************************************************* //
