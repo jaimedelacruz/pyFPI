@@ -274,11 +274,11 @@ namespace fpi{
       T const cbeta = h*beta1[nn];//c * std::cos(beta1[nn]);
       
       for(int ii=0; ii<nw; ++ii){
-	sin2p(nn,ii) = sin(cbeta / (w0+dw[ii]));
+	sin2p(nn,ii) = mth::SQ<T>(std::sin(cbeta / (w0+dw[ii])));
       }
     }				
 
-    sin2p = sin2p * sin2p;
+    //sin2p = sin2p * sin2p;
     
     return sin2p;
   }
