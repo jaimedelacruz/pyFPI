@@ -15,10 +15,10 @@ root_dir = str(pathlib.Path(*p.parts[0:-2]))
 
 if(plt.system() == 'Darwin'):
     root_dir = '/opt/local/' # using this one if macports are installed
-    CC = "gcc" #'clang'
-    CXX= "g++" #'clang++'
+    CC = 'clang'
+    CXX= 'clang++'
     link_opts = ["-bundle","-undefined","dynamic_lookup", "-fopenmp"]
-    comp_flags = ["-mcpu=native"] #, "-ffp-model=fast"]
+    comp_flags = ["-mcpu=native", "-ffp-model=fast"]
 else:
     root_dir = '/usr/'
     CC = 'gcc'
