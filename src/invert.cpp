@@ -50,7 +50,7 @@ void fpi::invert_hre_crisp(long const ny, long const nx, long const npar, long c
   constexpr const int max_iter = 30;
   constexpr const ft chi_lim = 0.0;
   constexpr const int delay_bracket = 4;
-  constexpr const ft I_THRES = 8.e-2;
+  constexpr const ft I_THRES = 1.e-2;
   constexpr const ft init_lambda = 10.;
 
   
@@ -98,7 +98,8 @@ void fpi::invert_hre_crisp(long const ny, long const nx, long const npar, long c
       
       lm::container_base<ft,float>* const myData =
 	new lm::container_hre_fit<ft,float>(nwav, *fpis[tid], d, sig, inverters[tid]->Pinfo,
-					    nfts, fts_x, fts_y, wav, tw, fpi_method, no_pref, 0.0, 0.0, use_observed_grid);
+					    nfts, fts_x, fts_y, wav, tw, fpi_method, no_pref,
+					    0.0, 0.0, use_observed_grid);
       
 
 #pragma omp for schedule(dynamic,20)

@@ -315,38 +315,144 @@ namespace mth{
     
     
   }; // fftconvol1D class
-  
-  // ********************************************************************* //
+    // ************************************************************** //
 
-  template<typename T> inline
-  void interpolation_Linear(int const N,  const T* const __restrict__ x,  const T* const __restrict__ y,
-			    int const NN, const T* const __restrict__ xx, T* const __restrict__ yy )
+  template<typename U, typename T> inline
+  void Hunt(U const n, const T* const array, T const& value, U &ilow)
   {
-    int const N1 = N-1;
-    
-    // --- pre-compute derivatives --- //
-    
-    T* const __restrict__ a = new T[N1]();
+    bool const ascend = (array[n-1] > array[0]) ? true : false;
+    U ihigh, index, increment;
 
-    for(int ii=0; ii<N1; ++ii){
-      a[ii] = (y[ii+1]-y[ii]) / (x[ii+1] - x[ii]);
-    }
-
-    int k = 0;
-    for(int ii=0; ii < NN; ++ii){
-      T const ixx = std::min<T>(std::max<T>(x[0], xx[ii]), x[N1]);
-
-      for(int jj=k; jj<N1; ++jj){
-	if(ixx >= x[jj]) k = jj;
-	else break;
-      }
+    if ((ilow <= U(0))  ||  (ilow > n-1)) {
+      
+      /* --- Input guess not useful here, go to bisection --  --------- */
+      
+      ilow = 0;
+      ihigh = n;
+   
+    }else{
+      
+      /* --- Else hunt up or down to bracket value --    -------------- */ 
+      
+      increment = 1;
+      if (((value >= array[ilow]) ? true : false) == ascend) {
+	ihigh = ilow + increment;
+	if (ilow == n-1) return;
 	
-      yy[ii] = a[k] * (ixx - x[k]) + y[k];
+	/* --- Hunt up --                                -------------- */
+	
+	while (((value >= array[ihigh]) ? true : false) == ascend) {
+	  ilow = ihigh;
+	  increment += increment;
+	  ihigh = ilow + increment;
+	  if (ihigh >= n) { ihigh = n;  break; }
+	}
+      } else {
+	ihigh = ilow;
+	if (ilow == 0) return;
+	
+	/* --- Hunt down --                              -------------- */
+	
+	while (((value <= array[ilow]) ? true : false) == ascend) {
+	  ihigh = ilow;
+	  increment += increment;
+	  ilow = ihigh - increment;
+	  if (ilow <= 0) { ilow = 0;  break; }
+	}
+      }
     }
     
-    delete [] a;
+    /* --- Bisection algorithm --                        -------------- */
+    
+    if (ascend) {
+      while (ihigh - ilow > 1) {
+	index = (ihigh + ilow) >> 1;
+	if (value >= array[index])
+	  ilow = index;
+	else
+	  ihigh = index;
+      }
+    } else {
+      while (ihigh - ilow > 1) {
+	index = (ihigh + ilow) >> 1;
+	if (value <= array[index])
+	  ilow = index;
+	else
+	  ihigh = index;
+      }
+    }
+  }
+  
+  // ************************************************************** //
+
+  template<typename U, typename T> inline
+  void Locate(U const n,  const T* const array, T value, U &ilow)
+  {
+    U ihigh = n, index;
+    
+    bool const ascend = (array[n-1] > array[0]) ? true : false;
+    ilow = 0;
+    
+    if (ascend) {
+      while (ihigh - ilow > 1) {
+	index = (ihigh + ilow) >> 1;
+	if (value >= array[index])
+	  ilow = index;
+	else
+	  ihigh = index;
+      }
+    } else {
+      while (ihigh - ilow > 1) {
+	index = (ihigh + ilow) >> 1;
+	if (value <= array[index])
+	  ilow = index;
+	else
+	  ihigh = index;
+      }
+    }
   }
 
+  // ********************************************************************* //
+
+  template<typename U, typename T>
+  void interpolation_Linear(U const Ntable,  const T* const __restrict__ xtable,
+			    const T* const __restrict__ ytable, U const N,
+			    const T* const __restrict__ x, T* const __restrict__ y,
+			    bool const hunt = true)
+  {
+    
+    // ---- Hunt / Locate implementation based on NR and RH2001 --- //
+    
+    bool const ascend = (xtable[1] > xtable[0]) ? true : false;
+    T const xmin = (ascend) ? xtable[0] : xtable[Ntable-1];
+    T const xmax = (ascend) ? xtable[Ntable-1] : xtable[0];
+    U j = 0;
+
+    
+    // --- Perform interpolation --- //
+
+    for (int n = 0;  n < N;  n++) {
+      if (x[n] <= xmin)
+	y[n] = (ascend) ? ytable[0] : ytable[Ntable-1];
+      else if (x[n] >= xmax)
+	y[n] = (ascend) ? ytable[Ntable-1] : ytable[0];
+      else {
+	
+	// --- Reuse the index from previous interpolated element to speed up
+	//     bracketing of the interval. Speeds up A LOT the code!
+	
+	if (hunt) 
+	  Hunt<U,T>(Ntable, xtable, x[n], j);
+	else
+	  Locate<U,T>(Ntable, xtable, x[n], j);
+
+	// --- weighted average between two points of the interval --- //
+	
+	T const cint = (xtable[j+1] - x[n]) / (xtable[j+1] - xtable[j]);
+	y[n] = cint*ytable[j] + (T(1) - cint)*ytable[j+1];
+      }
+    }
+  }
   // ********************************************************************* //
 
   template<typename T>

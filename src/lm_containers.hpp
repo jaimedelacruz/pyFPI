@@ -335,7 +335,7 @@ namespace lm{
       if(use_observed_grid){
 	std::memcpy(syn,cfts_y,sizeof(T)*nDat);
       }else{
-	mth::interpolation_Linear<T>(nfts, fts_x, cfts_y, nDat, wav, syn);
+	mth::interpolation_Linear<int,T>(nfts, fts_x, cfts_y, nDat, wav, syn);
 
       }
     
@@ -467,7 +467,7 @@ namespace lm{
       // --- interpolate everything to the observed grid --- //
       
       if(use_observed_grid){
-	mth::interpolation_Linear<T>(nfts, fts_x, cfts_y,    nDat, wav, syn);
+	mth::interpolation_Linear<int,T>(nfts, fts_x, cfts_y,    nDat, wav, syn);
 	if(!this->Pinfo[1].fixed) std::memcpy(J+1*nDat,dfts_dech,nDat*sizeof(T)); 
 	if(!this->Pinfo[2].fixed) std::memcpy(J+2*nDat,dfts_derh,nDat*sizeof(T));
 	if(!this->Pinfo[3].fixed && !no_pref) std::memcpy(J+3*nDat,dfts_dpcw,nDat*sizeof(T));
@@ -477,14 +477,14 @@ namespace lm{
 	if(!this->Pinfo[7].fixed) std::memcpy(J+7*nDat,dfts_dli2,nDat*sizeof(T));
 	if(!this->Pinfo[8].fixed) std::memcpy(J+8*nDat,dfts_dli3,nDat*sizeof(T));
       }else{
-	if(!this->Pinfo[1].fixed) mth::interpolation_Linear<T>(nfts, fts_x, dfts_dech, nDat, wav, J+1*nDat);
-	if(!this->Pinfo[2].fixed) mth::interpolation_Linear<T>(nfts, fts_x, dfts_derh, nDat, wav, J+2*nDat);
-	if(!this->Pinfo[3].fixed && !no_pref) mth::interpolation_Linear<T>(nfts, fts_x, dfts_dpcw, nDat, wav, J+3*nDat);
-	if(!this->Pinfo[4].fixed && !no_pref) mth::interpolation_Linear<T>(nfts, fts_x, dfts_dpfw, nDat, wav, J+4*nDat);
-	if(!this->Pinfo[5].fixed && !no_pref) mth::interpolation_Linear<T>(nfts, fts_x, dfts_dpex, nDat, wav, J+5*nDat);
-	if(!this->Pinfo[6].fixed) mth::interpolation_Linear<T>(nfts, fts_x, dfts_dli1, nDat, wav, J+6*nDat);
-	if(!this->Pinfo[7].fixed) mth::interpolation_Linear<T>(nfts, fts_x, dfts_dli2, nDat, wav, J+7*nDat);
-	if(!this->Pinfo[8].fixed) mth::interpolation_Linear<T>(nfts, fts_x, dfts_dli3, nDat, wav, J+8*nDat);
+	if(!this->Pinfo[1].fixed) mth::interpolation_Linear<int,T>(nfts, fts_x, dfts_dech, nDat, wav, J+1*nDat);
+	if(!this->Pinfo[2].fixed) mth::interpolation_Linear<int,T>(nfts, fts_x, dfts_derh, nDat, wav, J+2*nDat);
+	if(!this->Pinfo[3].fixed && !no_pref) mth::interpolation_Linear<int,T>(nfts, fts_x, dfts_dpcw, nDat, wav, J+3*nDat);
+	if(!this->Pinfo[4].fixed && !no_pref) mth::interpolation_Linear<int,T>(nfts, fts_x, dfts_dpfw, nDat, wav, J+4*nDat);
+	if(!this->Pinfo[5].fixed && !no_pref) mth::interpolation_Linear<int,T>(nfts, fts_x, dfts_dpex, nDat, wav, J+5*nDat);
+	if(!this->Pinfo[6].fixed) mth::interpolation_Linear<int,T>(nfts, fts_x, dfts_dli1, nDat, wav, J+6*nDat);
+	if(!this->Pinfo[7].fixed) mth::interpolation_Linear<int,T>(nfts, fts_x, dfts_dli2, nDat, wav, J+7*nDat);
+	if(!this->Pinfo[8].fixed) mth::interpolation_Linear<int,T>(nfts, fts_x, dfts_dli3, nDat, wav, J+8*nDat);
       }
 
       if(!this->Pinfo[0].fixed){
@@ -683,7 +683,7 @@ namespace lm{
 
       // --- now we will need to interpolate to the observed grid --- //
 
-      mth::interpolation_Linear<T>(nfts, fts_x, cfts_y, nDatH, wav, syn);
+      mth::interpolation_Linear<int,T>(nfts, fts_x, cfts_y, nDatH, wav, syn);
 
     
       // --- calculate residue --- //
@@ -845,17 +845,17 @@ namespace lm{
       
       // --- interpolate everything to the observed grid --- //
       
-      mth::interpolation_Linear<T>(nfts, fts_x, cfts_y, nDatH, wav, syn);
-      if(!this->Pinfo[1].fixed) mth::interpolation_Linear<T>(nfts, fts_x, dfts_dech, nDatH, wav, J+1*nDat);
-      if(!this->Pinfo[2].fixed) mth::interpolation_Linear<T>(nfts, fts_x, dfts_derh, nDatH, wav, J+2*nDat);
-      if(!this->Pinfo[3].fixed) mth::interpolation_Linear<T>(nfts, fts_x, dfts_dpcw, nDatH, wav, J+3*nDat);
-      if(!this->Pinfo[4].fixed) mth::interpolation_Linear<T>(nfts, fts_x, dfts_dpfw, nDatH, wav, J+4*nDat);
-      if(!this->Pinfo[5].fixed) mth::interpolation_Linear<T>(nfts, fts_x, dfts_dpex, nDatH, wav, J+5*nDat);
-      if(!this->Pinfo[6].fixed) mth::interpolation_Linear<T>(nfts, fts_x, dfts_dli1, nDatH, wav, J+6*nDat);
-      if(!this->Pinfo[7].fixed) mth::interpolation_Linear<T>(nfts, fts_x, dfts_dli2, nDatH, wav, J+7*nDat);
-      if(!this->Pinfo[8].fixed) mth::interpolation_Linear<T>(nfts, fts_x, dfts_dli3, nDatH, wav, J+8*nDat);
-      if(!this->Pinfo[10].fixed) mth::interpolation_Linear<T>(nfts, fts_x, dfts_decl, nDatH, wav, J+10*nDat);
-      if(!this->Pinfo[11].fixed) mth::interpolation_Linear<T>(nfts, fts_x, dfts_derl, nDatH, wav, J+11*nDat);
+      mth::interpolation_Linear<int,T>(nfts, fts_x, cfts_y, nDatH, wav, syn);
+      if(!this->Pinfo[1].fixed) mth::interpolation_Linear<int,T>(nfts, fts_x, dfts_dech, nDatH, wav, J+1*nDat);
+      if(!this->Pinfo[2].fixed) mth::interpolation_Linear<int,T>(nfts, fts_x, dfts_derh, nDatH, wav, J+2*nDat);
+      if(!this->Pinfo[3].fixed) mth::interpolation_Linear<int,T>(nfts, fts_x, dfts_dpcw, nDatH, wav, J+3*nDat);
+      if(!this->Pinfo[4].fixed) mth::interpolation_Linear<int,T>(nfts, fts_x, dfts_dpfw, nDatH, wav, J+4*nDat);
+      if(!this->Pinfo[5].fixed) mth::interpolation_Linear<int,T>(nfts, fts_x, dfts_dpex, nDatH, wav, J+5*nDat);
+      if(!this->Pinfo[6].fixed) mth::interpolation_Linear<int,T>(nfts, fts_x, dfts_dli1, nDatH, wav, J+6*nDat);
+      if(!this->Pinfo[7].fixed) mth::interpolation_Linear<int,T>(nfts, fts_x, dfts_dli2, nDatH, wav, J+7*nDat);
+      if(!this->Pinfo[8].fixed) mth::interpolation_Linear<int,T>(nfts, fts_x, dfts_dli3, nDatH, wav, J+8*nDat);
+      if(!this->Pinfo[10].fixed) mth::interpolation_Linear<int,T>(nfts, fts_x, dfts_decl, nDatH, wav, J+10*nDat);
+      if(!this->Pinfo[11].fixed) mth::interpolation_Linear<int,T>(nfts, fts_x, dfts_derl, nDatH, wav, J+11*nDat);
 
 
       if(!this->Pinfo[0].fixed){

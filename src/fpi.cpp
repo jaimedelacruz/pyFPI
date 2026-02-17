@@ -348,7 +348,8 @@ ft fpi::FPI::getBlueShift()const
     norm += wng[ii];
   }
 
-  // --- The wavelength shift is then 
+  // --- The wavelength shift is then --- //
+  
   dlam /= two_pi * norm;
   dlam = (dlam - ft(1)) * cw;
   
@@ -562,8 +563,8 @@ ft fpi::FPI::getFWHM(int const approximation)const
     double w_blue = 0.0, w_red = 0.0;
     double const tr_mid = tr_ma*0.5;
     
-    mth::interpolation_Linear<double>(nwav, tr.data(), tw.data(), 1, &tr_mid, &w_blue);
-    mth::interpolation_Linear<double>(nwav, tr1.data(), tw1.data(), 1, &tr_mid, &w_red);
+    mth::interpolation_Linear<int,double>(nwav, tr.data(), tw.data(), 1, &tr_mid, &w_blue);
+    mth::interpolation_Linear<int,double>(nwav, tr1.data(), tw1.data(), 1, &tr_mid, &w_red);
     
     return w_red-w_blue;
     

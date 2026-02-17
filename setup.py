@@ -15,16 +15,16 @@ root_dir = str(pathlib.Path(*p.parts[0:-2]))
 
 if(plt.system() == 'Darwin'):
     root_dir = '/opt/local/' # using this one if macports are installed
-    CC = "gcc" #'clang'
-    CXX= "g++" #'clang++'
+    CC = 'clang'
+    CXX= 'clang++'
     link_opts = ["-bundle","-undefined","dynamic_lookup", "-fopenmp"]
-    comp_flags = ["-mcpu=native"] #, "-ffp-model=fast"]
+    comp_flags = ["-mcpu=apple-m3"]
 else:
     root_dir = '/usr/'
     CC = 'gcc'
     CXX= 'g++'
     link_opts = ["-shared", "-fopenmp"]
-    comp_flags = ["-march=native", "-funsafe-math-optimizations"]
+    comp_flags = ["-march=native"]
 
 os.environ["CC"] = CC
 os.environ["CXX"] = CXX
@@ -39,9 +39,9 @@ if(debug):
                    '-std=c++20','-fPIC','-fopenmp', '-I./src',\
                    "-DNPY_NO_DEPRECATED_API", '-pedantic', '-Wall']
 else:
-    comp_flags += ['-O3','-g0','-fstrict-aliasing',"-pipe","-ffast-math",\
+    comp_flags += ['-O3','-ffast-math','-g0','-fstrict-aliasing',"-pipe",\
                    '-std=c++20','-fopenmp', '-I./src', "-DNPY_NO_DEPRECATED_API",\
-                   '-DNDEBUG',  "-flto"]
+                   '-DNDEBUG',  "-flto", "-fstrict-aliasing"]
     
 
 
