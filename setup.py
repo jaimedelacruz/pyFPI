@@ -18,7 +18,7 @@ if(plt.system() == 'Darwin'):
     CC = 'clang'
     CXX= 'clang++'
     link_opts = ["-bundle","-undefined","dynamic_lookup", "-fopenmp"]
-    comp_flags = ["-mcpu=apple-m3"]
+    comp_flags = ["-mcpu=native", "-ffp-model=fast"]
 else:
     root_dir = '/usr/'
     CC = 'gcc'

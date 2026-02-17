@@ -81,7 +81,8 @@ def getFX(par, myData, get_J = False):
 # **************************************************************************
 
 def fitPrefilterCRISP(wav, imean, init_fwhm=4.3, init_ncav=2.1, init_fts_shift=0.0, \
-                      cw = None, sig = None, plot=False, no_prefilter=False, verbose=False):
+                      cw = None, sig = None, plot=False, no_prefilter=False, verbose=False,
+                      CRISP_version=2):
     if(cw is None):
         cw = wav.mean()
 
@@ -89,7 +90,7 @@ def fitPrefilterCRISP(wav, imean, init_fwhm=4.3, init_ncav=2.1, init_fts_shift=0
         sig = np.zeros(wav.size) + imean.mean() * 0.005
         
     # Init CRISP object
-    fpi = pyFPI.CRISP(cw)
+    fpi = pyFPI.CRISP(cw, version=CRISP_version)
     
     # read atlas
     sa = satlas.satlas()

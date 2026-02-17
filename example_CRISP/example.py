@@ -246,7 +246,7 @@ if __name__ == "__main__":
     
 
     # fit initial prefilter parameters from the HRE mean spectrum, and also the absolute wavelength calibration
-    pp, J, fit = fh.fitPrefilterCRISP(dh.wav+cw, dh.imean, cw=cw, plot=True, no_prefilter=False)
+    pp, J, fit = fh.fitPrefilterCRISP(dh.wav+cw, dh.imean, cw=cw, plot=True, no_prefilter=False, CRISP_version=1)
 
     # add wavelength calibration to the wavelength arrays
     dh.wav += pp[4]; dh.wav_corr += pp[4]
@@ -288,7 +288,7 @@ if __name__ == "__main__":
     # Perform the initial HRE fit
     t0 = time.time()
     hpar, hsyn = FF.fit_hre_CRISP(cw, pinit_HRE, dh.dat, dh.sig, dh.wav+cw, ftsx, ftsy, fixed, lcmap, \
-                                erl , nthreads=nthreads, fpi_method=2)
+                                  erl , nthreads=nthreads, fpi_method=2, CRISP_version=1)
     t1 = time.time()
 
     hchi2 = dh.getChi2(hsyn)
@@ -307,7 +307,7 @@ if __name__ == "__main__":
 
     # Fit the LRE
     t0 = time.time()
-    lpar, lsyn = FF.fit_lre_CRISP(cw, pinit_LRE, dl.dat, dl.sig, dl.wav+cw, ech, erh, pref, fpi_method=fpi_method, nthreads=nthreads)
+    lpar, lsyn = FF.fit_lre_CRISP(cw, pinit_LRE, dl.dat, dl.sig, dl.wav+cw, ech, erh, pref, fpi_method=fpi_method, nthreads=nthreads, CRISP_version=1)
     t1 = time.time()
 
     lchi2 = dl.getChi2(lsyn)
@@ -321,7 +321,7 @@ if __name__ == "__main__":
         
     t0 = time.time()
     hpar, hsyn = FF.fit_hre_CRISP(cw, hpar, dh.dat, dh.sig, dh.wav+cw, ftsx, ftsy, fixed, ecl, \
-                                  erl, nthreads=nthreads, fpi_method=2)
+                                  erl, nthreads=nthreads, fpi_method=2, CRISP_version=1)
     t1 = time.time()
 
     hchi2 = dh.getChi2(hsyn)
