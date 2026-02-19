@@ -222,7 +222,14 @@ namespace fpi{
 				     bool const normalize_htr)const;
     
     // -------------------------------------------------------------- //
+    
+    void dual_fpi_full_complex(int const N1, const ft* const tw, ft* const tr,
+			       ft const erh, ft const erl, ft const ech,
+			       ft const ecl, bool const normalize)const;
+    
+    // -------------------------------------------------------------- //
 
+    
     void set_reflectivities(ft const ihr, ft const ilr);
 
     // -------------------------------------------------------------- //
