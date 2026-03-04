@@ -89,6 +89,8 @@ namespace fpi{
     Arr2D<ft> n_betah;
     Arr1D<ft> betah_lr;
     Arr1D<ft> betah_hr;
+    std::vector<std::complex<ft>> zern4;
+
     
     std::unique_ptr<mth::fftconv1D<ft>> convolver;
     std::unique_ptr<mth::fftconv1D<ft>> convolver2;
@@ -100,6 +102,10 @@ namespace fpi{
 	ft const irh, ft const irl,
 	int const iNRAYS_HR, int const iNRAYS_LR);
 
+    // -------------------------------------------------------------- //
+
+    void optimize_Zernike();
+    
     // -------------------------------------------------------------- //
 
     ~FPI();
@@ -226,7 +232,6 @@ namespace fpi{
     void dual_fpi_full_complex(int const N1, const ft* const tw, ft* const tr,
 			       ft const erh, ft const erl, ft const ech,
 			       ft const ecl, bool const normalize)const;
-    
     // -------------------------------------------------------------- //
 
     

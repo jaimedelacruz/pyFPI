@@ -255,7 +255,7 @@ fpi::FPI::FPI(ft const icw, ft const iFR, ft const shr, ft const slr,
 	      int const iNRAYS_HR, int const iNRAYS_LR):
   cw(icw), FR(iFR), hc(0), lc(0), lc_tilted(0), hfsr(0), lfsr(0), lr(ilr), hr(ihr),
   BlueShift(0), NRAYS_HR(iNRAYS_HR), NRAYS_LR(iNRAYS_LR), calp{}, wng{}, 
-  n_betah(), betah_lr(iNRAYS_LR), betah_hr(iNRAYS_HR),
+  n_betah(), betah_lr(iNRAYS_LR), betah_hr(iNRAYS_HR), zern4(iNRAYS_HR, std::complex<ft>(0.0,0.0)),
   convolver(nullptr), convolver2(nullptr)
 {
   constexpr ft const n_hr = 1.0; // air
@@ -312,7 +312,12 @@ fpi::FPI::FPI(ft const icw, ft const iFR, ft const shr, ft const slr,
   Arr2D<ft> beta_fpi2 = fpi::fp_angles(fpi::NL,ap,FR,TILT_LR) / ft(n_lr);
   Arr3D<ft> betah; betah.setZero();
 
+  
+
+  // --- psi_hr and psi_lr contain the phase term inside the cos --- //
+  
   fpi::hist2D(ap,beta_fpi1,beta_fpi2,NRAYS_HR,NRAYS_LR,n_betah,betah);
+  
 
 
   // --- Store rays for each etalon --- //
@@ -323,6 +328,10 @@ fpi::FPI::FPI(ft const icw, ft const iFR, ft const shr, ft const slr,
   for(int ii=0; ii<NRAYS_HR;++ii)
     betah_hr[ii] = betah(0,0,ii);
 
+
+  // --- initialize optimal focus term --- //
+
+  optimize_Zernike();
 
   
   // --- estimate profile blueshift --- //
@@ -670,6 +679,7 @@ void fpi::FPI::dual_fpi_full_der(int const N1, const ft* const tw, ft* const tr,
   
   ft const thr = hr + erh;
   ft const tlr = lr + erl;
+  
   constexpr ft const dthr_derh = ft(1);
   constexpr ft const dtlr_derl = ft(1);
 
@@ -722,8 +732,8 @@ void fpi::FPI::dual_fpi_full_der(int const N1, const ft* const tw, ft* const tr,
 	ft const dtr_lr_derl = - mth::SQ(tr_lr) * dflr_derl * sin2p_lr(n,ww);
 	ft const dtr_hr_derh = - mth::SQ(tr_hr) * dfhr_derh * sin2p_hr(m,ww);
 	
-	ft const dtr_lr_decl = mth::SQ(tr_lr) * flr * dsin2p_lr(n,ww);
-	ft const dtr_hr_dech = mth::SQ(tr_hr) * fhr * dsin2p_hr(m,ww);
+	ft const dtr_lr_decl = - mth::SQ(tr_lr) * flr * dsin2p_lr(n,ww);
+	ft const dtr_hr_dech = - mth::SQ(tr_hr) * fhr * dsin2p_hr(m,ww);
 
 	ft const dtr_lr_dech = dtr_lr_decl * decl_ech;
 

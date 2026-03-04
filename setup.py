@@ -15,10 +15,10 @@ root_dir = str(pathlib.Path(*p.parts[0:-2]))
 
 if(plt.system() == 'Darwin'):
     root_dir = '/opt/local/' # using this one if macports are installed
-    CC = 'clang'
-    CXX= 'clang++'
+    CC = 'clang-mp-19'
+    CXX= 'clang++-mp-19'
     link_opts = ["-bundle","-undefined","dynamic_lookup", "-fopenmp"]
-    comp_flags = ["-mcpu=native", "-ffp-model=fast"]
+    comp_flags = ["-mcpu=native"]
 else:
     root_dir = '/usr/'
     CC = 'gcc'
@@ -39,7 +39,7 @@ if(debug):
                    '-std=c++20','-fPIC','-fopenmp', '-I./src',\
                    "-DNPY_NO_DEPRECATED_API", '-pedantic', '-Wall']
 else:
-    comp_flags += ['-O3','-ffast-math','-g0','-fstrict-aliasing',"-pipe",\
+    comp_flags += ['-O3','-g0','-fstrict-aliasing',"-pipe",\
                    '-std=c++20','-fopenmp', '-I./src', "-DNPY_NO_DEPRECATED_API",\
                    '-DNDEBUG',  "-flto", "-fstrict-aliasing"]
     
@@ -47,7 +47,7 @@ else:
 
 extension = Extension("pyFPI",
                       sources=["src/python_interface.pyx", "src/fpi.cpp", "src/fpi_individual.cpp", \
-                               "src/invert.cpp"], 
+                               "src/invert.cpp", "src/fpi_complex.cpp"], 
                       include_dirs=["./",numpy.get_include(), './eigen3', root_dir+"/include/", \
                                     root_dir+'/include/eigen3/'],
                       language="c++",

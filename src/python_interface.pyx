@@ -74,6 +74,11 @@ cdef extern from "fpi.hpp" namespace "fpi":
                             ft erh, ft erl,
 			    ft ech, ft ecl, bool normalize_tr)const;
          
+         void dual_fpi_full_complex(int N1,  ft* const tw,
+			            ft* const tr,
+                                    ft erh, ft erl,
+			            ft ech, ft ecl, bool normalize_tr)const;
+                  
          void dual_fpi_full_der(int N1,  ft* const tw,
 			        ft* const tr, ft* const dtr,
                                 ft erh, ft erl,
@@ -885,6 +890,37 @@ cdef class CRISP:
 
     # ------------------------------------------------------
 
+    cpdef dual_fpi_full_complex(self, ar[ft,ndim=1] tw, ft erh=0.0, ft erl = 0.0, \
+                                ft ech = 0.0, ft ecl = 0.0, bool normalize_tr=False):
+        """
+        Calculates the dual-etalon combined profile including the convergence of the telecentric beam and
+        the tilt of the LRE (by 1/(2.0*Fr)). It performs a histogram of the angles over the pupil in order
+        to speed up the calculations.
+
+        Input:
+            tw: wavelength offset grid [Angstroms] used to compute the profile. 1D float64 array.
+           erh: HRE reflectivity error (fraction). This float number is added to the nominal HRE reflectivity.
+           erh: LRE reflectivity error (fraction). This float number is added to the nominal LRE reflectivity.
+           ech: HRE cavity error [Angstrom]. This float number is added to the nominal HRE cavity separation.
+           ecl: LRE cavity error [Angstrom]. This float number is added to the nominal LRE cavity separation.
+                Note that the ecl is relative to the position of the HRE.
+        normalize_tr: if set, the returned profile is area-normalized (for convolutions). Bool-type.
+
+        Output:
+           tr: the effective transmission profile of the system, evaluated at "tw".
+
+        """
+        
+        cdef int nw = tw.size
+        cdef ar[ft,ndim=1] tr = zeros(nw,dtype='float64')
+
+        self.cfpi.dual_fpi_full_complex(<int>nw, <ft*>tw.data, <ft*>tr.data, <ft>erh, \
+                                        <ft>erl, <ft>ech, <ft>ecl, <bool>normalize_tr)
+    
+        return tr
+
+    # ------------------------------------------------------
+    
     cpdef dual_fpi_full_der(self, ar[ft,ndim=1] tw, ft erh=0.0, ft erl = 0.0, ft ech = 0.0,\
                             ft ecl = 0.0, bool normalize_tr=False):
         """

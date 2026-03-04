@@ -36,6 +36,31 @@ namespace mth{
   
   // ********************************************************************* //
 
+  template<typename T>
+  inline std::array<T,3> parab_fit(const T* const x, const T* const y){
+
+    std::array<T,3> cf;
+    
+    T const d = x[0];
+    T const e = x[1];
+    T const f = x[2];
+  
+    T const yd = y[0];
+    T const ye = y[1];
+    T const yf = y[2];
+  
+    cf[1] = ((yf - yd) - (mth::SQ(f) - mth::SQ(d)) * ((ye - yd) / (mth::SQ(e) - mth::SQ(d))))/ \
+      ((f - d) - (mth::SQ(f) - mth::SQ(d)) * ((e - d) / (mth::SQ(e) - mth::SQ(d))));
+    
+    cf[2] = ((ye - yd) - cf[1] * (e - d)) / (mth::SQ(e) - mth::SQ(d));
+    
+    cf[0] = yd - cf[1] * d - cf[2] * mth::SQ(d);
+    
+    return cf;
+  }
+  
+  // ********************************************************************* //
+
   template<typename T, int N>
   class Linear1D{
     
