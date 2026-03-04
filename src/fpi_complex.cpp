@@ -177,6 +177,7 @@ void fpi::FPI::dual_fpi_full_complex(int const N1, const ft* const tw, ft* const
 
   std::vector<std::complex<ft>> tr_nu(N1, zero_complex);
   std::vector<std::complex<ft>> tr_lr(N1);
+  std::vector<std::complex<ft>> tr_hr(N1);
   
   for(int n=0; n<NRAYS_LR; ++n){
     
@@ -195,12 +196,16 @@ void fpi::FPI::dual_fpi_full_complex(int const N1, const ft* const tw, ft* const
 	  
 	  ft const hre_real = cHRE / (ft(1) + fhr * mth::SQ(sinp_hr(m,ww)));
 	  ft const cosp_hr = std::cos(psi_hr(m,ww));
-	  std::complex<ft> tr_hr(hre_real*(ft(1)-thr)*cosp_hr, hre_real*(ft(1)+thr)*sinp_hr(m,ww));
-	  
+	  tr_hr[ww] = std::complex<ft>(hre_real*(ft(1)-thr)*cosp_hr, hre_real*(ft(1)+thr)*sinp_hr(m,ww));
+	}
+
+	ft const w_mn = this->n_betah(n,m);
+	
+	for(int ww=0; ww<N1; ++ww){  	  
 
 	  // --- now multiply the two transmission profiles --- //
 	  
-	  tr_nu[ww] += (tr_hr * tr_lr[ww] * this->zern4[m])*this->n_betah(n,m);
+	  tr_nu[ww] += (tr_hr[ww] * tr_lr[ww] * this->zern4[m])*w_mn;
 	  
 	} // ww
       } // if
