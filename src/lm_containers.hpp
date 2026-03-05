@@ -89,8 +89,10 @@ namespace lm{
 	ifpi.dual_fpi_ray_individual(npsf, tw, syn, ltr, erh, m[2], ech, m[1], angle, true, false);
       }else if(fpi_method == 1){
 	ifpi.dual_fpi_conv_individual(npsf, tw, syn, ltr, erh, m[2], ech, m[1], true, false);
-      }else{
+      }else if(fpi_method == 2){
 	ifpi.dual_fpi_full_individual(npsf, tw, syn, ltr, erh, m[2], ech, m[1], true, false);
+      }else{
+	ifpi.dual_fpi_full_complex_individual(npsf, tw, syn, ltr, erh, m[2], ech, m[1], true, false);
       }
 
       for(int ii=0; ii<npsf; ++ii){
@@ -147,8 +149,10 @@ namespace lm{
 	ifpi.dual_fpi_ray_individual_der(npsf, tw, syn, ltr, dtr, erh, m[2], ech, m[1], angle, true, false);
       }else if(fpi_method == 1){
 	ifpi.dual_fpi_conv_individual_der(npsf, tw, syn, ltr, dtr, erh, m[2], ech, m[1], true, false);
-      }else{
+      }else if(fpi_method == 2){
 	ifpi.dual_fpi_full_individual_der(npsf, tw, syn, ltr, dtr, erh, m[2], ech, m[1], true, false);
+      }else{
+	ifpi.dual_fpi_full_complex_individual_der(npsf, tw, syn, ltr, dtr, erh, m[2], ech, m[1], true, false);
       }
 
       T* const __restrict__ dtr_decl =  dtr+npsf*3;
@@ -317,8 +321,10 @@ namespace lm{
 	ifpi.dual_fpi_ray(npsf, tw, tr, m[2], erl, m[1], ecl, angle, normalize_tr = true);
       }else if(fpi_method == 1){
 	ifpi.dual_fpi_conv(npsf, tw, tr, m[2], erl, m[1], ecl, normalize_tr = true);
-      }else{
+      }else if(fpi_method == 2){
 	ifpi.dual_fpi_full(npsf, tw, tr, m[2], erl, m[1], ecl, normalize_tr = true);
+      }else{
+	ifpi.dual_fpi_full_complex(npsf, tw, tr, m[2], erl, m[1], ecl, normalize_tr = true);
       }
       
       ifpi.convolver->updatePSF(npsf, tr);
@@ -435,8 +441,10 @@ namespace lm{
 	 ifpi.dual_fpi_ray_der(npsf, tw, tr, dtr, m[2], erl, m[1], ecl, angle, normalize_tr = true);
        }else if(fpi_method == 1){
 	 ifpi.dual_fpi_conv_der(npsf, tw, tr, dtr, m[2], erl, m[1], ecl, normalize_tr = true);
-       }else{
+       }else if(fpi_method == 2){
 	 ifpi.dual_fpi_full_der(npsf, tw, tr, dtr, m[2], erl, m[1], ecl, normalize_tr = true);
+       }else{
+	 ifpi.dual_fpi_full_complex_der(npsf, tw, tr, dtr, m[2], erl, m[1], ecl, normalize_tr = true);
        }
       
       // --- now propagate the derivatives of the instrumental profile through the convolution --- //

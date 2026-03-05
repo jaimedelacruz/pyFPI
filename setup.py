@@ -18,7 +18,7 @@ if(plt.system() == 'Darwin'):
     CC = 'clang-mp-19'
     CXX= 'clang++-mp-19'
     link_opts = ["-bundle","-undefined","dynamic_lookup", "-fopenmp"]
-    comp_flags = ["-mcpu=native"]
+    comp_flags = ["-mcpu=native", "-fcomplex-arithmetic=basic"]
 else:
     root_dir = '/usr/'
     CC = 'gcc'
@@ -35,7 +35,7 @@ os.environ["CXX"] = CXX
 debug = False
 
 if(debug):
-    comp_flags += ['-Os', '-g3','-fstrict-aliasing',\
+    comp_flags += ['-Os', '-g3','-fstrict-aliasing',"-ffast-math",\
                    '-std=c++20','-fPIC','-fopenmp', '-I./src',\
                    "-DNPY_NO_DEPRECATED_API", '-pedantic', '-Wall']
 else:

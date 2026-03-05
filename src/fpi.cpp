@@ -87,8 +87,8 @@ void fpi::FPI::dual_fpi_conv(int const N1, const ft* const tw, ft* const tr,
     for(int ww=0; ww < N1; ++ww){
       ft const wav1 = tw[ww] + cw + BlueShift;
       
-      ft const tr_lre = ft(1) / ( ft(1) + flr * mth::SQ(std::sin(plr / (wav1))) );
-      ft const tr_hre = ft(1) / ( ft(1) + fhr * mth::SQ(std::sin(phr / (wav1))) );
+      ft const tr_lre = ft(1) / (ft(1) + flr * mth::SQ(std::sin(plr / (wav1))) );
+      ft const tr_hre = ft(1) / (ft(1) + fhr * mth::SQ(std::sin(phr / (wav1))) );
 
       tr[ww] += (tr_lre * tr_hre) * wng[nn];
       
@@ -488,7 +488,6 @@ void fpi::FPI::dual_fpi_ray_der(int const N1, const ft* const tw,
     
     ft const dtr_hre_dech = -mth::SQ(tr_hre) * fhr * hre_2sincos * (dphr_dech / wav1);
     ft const dtr_lre_decl = -mth::SQ(tr_lre) * flr * lre_2sincos * (dplr_decl / wav1);
-
     
     tr[ii] = tr_lre*tr_hre;
     

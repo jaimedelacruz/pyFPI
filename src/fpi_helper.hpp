@@ -321,13 +321,11 @@ namespace fpi{
   
   template<typename T> inline
   Arr2D<T> get_psi2_der(int const nw, T const w0, const T* const dw,	\
-			T const h,  Arr1D<T> const& beta1, Arr2D<T> &dsin2p,
+			T const h,  Arr1D<T> const& beta1, 
 			Arr2D<T> &psi, Arr2D<T> &dpsi)
   {
     int const nrays = beta1.size();
-    
     Arr2D<T> sin2p(nrays,nw);
-    dsin2p = fpi::Arr2D<T>(nrays,nw);
     
 
     for(int nn=0; nn<nrays; ++nn){
@@ -339,14 +337,13 @@ namespace fpi{
       for(int ii=0; ii<nw; ++ii){
 	T const iw = ft(1) / (w0+dw[ii]);
 	T const arg = cbeta * iw;
-	T const si = sin(arg);
-	T const co = T(2) * cos(arg);
 	T const darg = dcbeta * iw;
+
+	T const si = sin(arg);
 
 	psi(nn,ii) = arg;
 	dpsi(nn,ii) = darg;
 	sin2p(nn,ii)  = si;
-	dsin2p(nn,ii) = co * si * darg;
       }
     }				
 
