@@ -241,10 +241,17 @@ void fpi::FPI::dual_fpi_conv_der(int const N1, const ft* const tw,
 
 void fpi::FPI::set_reflectivities(ft const ihr, ft const ilr)
 {
+  
   // --- Only replace reflectivities if they are set to positive values --- //
   
   if(ilr > 0.0) lr = ilr;
   if(ihr > 0.0) hr = ihr;
+
+
+  // --- refocus with the new reflectivity --- //
+
+  this->optimize_Zernike();
+  
 }
 
 
@@ -252,10 +259,10 @@ void fpi::FPI::set_reflectivities(ft const ihr, ft const ilr)
 
 fpi::FPI::FPI(ft const icw, ft const iFR, ft const shr, ft const slr,
 	      ft const ihr, ft const ilr,
-	      int const iNRAYS_HR, int const iNRAYS_LR):
+	      int const iNRAYS_HR, int const iNRAYS_LR, bool const dont_refocus):
   cw(icw), FR(iFR), hc(0), lc(0), lc_tilted(0), hfsr(0), lfsr(0), lr(ilr), hr(ihr),
   BlueShift(0), NRAYS_HR(iNRAYS_HR), NRAYS_LR(iNRAYS_LR), calp{}, wng{}, 
-  n_betah(), betah_lr(iNRAYS_LR), betah_hr(iNRAYS_HR), zern4(iNRAYS_HR, std::complex<ft>(0.0,0.0)),
+  n_betah(), betah_lr(iNRAYS_LR), betah_hr(iNRAYS_HR), zern4(iNRAYS_HR, std::complex<ft>(1.0,0.0)),
   convolver(nullptr), convolver2(nullptr)
 {
   constexpr ft const n_hr = 1.0; // air
@@ -331,7 +338,8 @@ fpi::FPI::FPI(ft const icw, ft const iFR, ft const shr, ft const slr,
 
   // --- initialize optimal focus term --- //
 
-  optimize_Zernike();
+  if(!dont_refocus)
+    optimize_Zernike();
 
   
   // --- estimate profile blueshift --- //

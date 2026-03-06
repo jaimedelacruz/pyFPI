@@ -132,7 +132,6 @@ void fpi::FPI::optimize_Zernike()
     this->zern4[ii] = std::exp(std::complex<ft>(0.0, -zernike_defocus));
   }
 
-  std::cerr<<std::format("fpi::FPI::optimize_Zernike: cZer={:.4f} mm, tmax={:.3f}\n", defocus_final/defocus_scl, pmax[itmax+1]);
   
 }
   

@@ -5,7 +5,7 @@ Author: J. de la Cruz Rodriguez (ISP-SU, 2025)
 import cython
 cimport numpy as np
 from numpy cimport ndarray as ar
-from numpy import zeros,  float64, float32, empty, power, arange, ones, linspace, interp
+from numpy import zeros,  float64, float32, empty, power, arange, ones, linspace, interp, ascontiguousarray, median
 from libcpp cimport bool
 from libcpp.vector cimport vector
 from cython.parallel import prange
@@ -44,7 +44,7 @@ cdef extern from "fpi.hpp" namespace "fpi":
          ft hr, lr;
          ft BlueShift;
         
-         FPI(ft icw, ft iFR, ft shr, ft slr, ft ihr, ft ilr, int NRAYS_HR, int NRAYS_LR)
+         FPI(ft icw, ft iFR, ft shr, ft slr, ft ihr, ft ilr, int NRAYS_HR, int NRAYS_LR, bool dont_refocus)
          
          
          void dual_fpi_conv(int N1, const ft* const tw, ft* const tr,
@@ -151,6 +151,8 @@ cdef extern from "fpi.hpp" namespace "fpi":
          ft get_HRE_reflectivity()const;
          ft get_LRE_reflectivity()const;
          ft getBlueShift()const;
+         void optimize_Zernike();
+         
          
 ctypedef FPI cFPI
 
@@ -421,7 +423,7 @@ def fit_lre_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim=1] si
                   int fpi_method = 2, int nrays_hr = 5, int nrays_lr = 5, int nthreads = 8,
                   int CRISP_version = 2):
 
-    
+    cdef bool dont_refocus = False
     cdef long ny = d.shape[0]
     cdef long nx = d.shape[1]
     cdef long nwav = wav.size
@@ -429,9 +431,15 @@ def fit_lre_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim=1] si
     cdef ft dw = wav[1] - wav[0]
 
     Fr, hc, lc, hr, lr = getCrispVersionParameters(w0, CRISP_version)
-    
+    mask = d[:,:,nwav//2] / median(d[:,:,nwav//2])  > 0.08 
 
-    print("[info] fit_lre_CRISP: ny={0:d}, nx={1:d}, nwav={2:d}, dw_fts={3:f}, fpi_method={4:d}".format(ny,nx,nwav,dw,fpi_method))
+    cdef double mean_lr =  median(ascontiguousarray(par[:,:,2][mask]))
+    cdef double mean_hr =  median(erh[mask])
+
+    print("[info] fit_lre_CRISP: ny={0:d}, nx={1:d}, nwav={2:d}, dw_fts={3:f}, fpi_method={4:d}".format(ny,nx,nwav,dw,fpi_method, dont_refocus))
+
+    lr += mean_lr
+    hr += mean_hr
 
     
     # --- Init fpi class ---
@@ -440,7 +448,7 @@ def fit_lre_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim=1] si
     cdef int ii = 0
 
     for ii in range(nthreads):
-        fpis.push_back(new cFPI(w0, Fr, hc, lc, hr, lr, nrays_hr, nrays_lr));
+        fpis.push_back(new cFPI(w0, Fr, hc, lc, hr, lr, nrays_hr, nrays_lr, dont_refocus));
 
 
     
@@ -472,6 +480,11 @@ def fit_lre_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim=1] si
     dt = time.time() - dt
     print("[info] fit_lre_CRISP: total elapsed time -> {:.1f}s".format(dt))
 
+
+    # --- correct the reflectivity error with the mean_lr ---
+
+    par[:,:,2] -= mean_lr
+    
     
     # --- cleanup ---
 
@@ -496,7 +509,8 @@ def fit_lre_CRISP_laser(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim
     cdef long nwav = wav.size
     cdef long npar = par.shape[2]
     cdef ft dw = wav[1] - wav[0]
-    
+    cdef bool dont_refocus = False
+
 
     print("[info] fit_lre_CRISP_laser: ny={0:d}, nx={1:d}, nwav={2:d}, dw_fts={3:f}".format(ny,nx,nwav,dw))
 
@@ -509,7 +523,7 @@ def fit_lre_CRISP_laser(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim
     Fr, hc, lc, hr, lr = getCrispVersionParameters(w0, CRISP_version)
 
     for ii in range(nthreads):
-        fpis.push_back(new cFPI(w0, Fr, hc, lc, hr, lr, nrays_hr, nrays_lr));
+        fpis.push_back(new cFPI(w0, Fr, hc, lc, hr, lr, nrays_hr, nrays_lr, dont_refocus));
 
 
     
@@ -558,7 +572,8 @@ def fit_hre_CRISP_laser(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim
     cdef long nwav = wav.size
     cdef long npar = par.shape[2]
     cdef ft dw = wav[1] - wav[0]
-    
+    cdef bool dont_refocus = False
+
 
     print("[info] fit_hre_CRISP_laser: ny={0:d}, nx={1:d}, nwav={2:d}, dw_fts={3:f}".format(ny,nx,nwav,dw))
 
@@ -572,7 +587,7 @@ def fit_hre_CRISP_laser(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim
 
     
     for ii in range(nthreads):
-        fpis.push_back(new cFPI(w0, Fr, hc, lc, hr, lr, nrays_hr , nrays_lr));
+        fpis.push_back(new cFPI(w0, Fr, hc, lc, hr, lr, nrays_hr , nrays_lr, dont_refocus));
 
 
     
@@ -624,19 +639,32 @@ def fit_hre_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim=1] si
     cdef long npar = par.shape[2]
     cdef long nfts = ftsx.size
     cdef ft dw = (ftsx[10] - ftsx[0]) * 0.1
+    cdef bool dont_refocus = False
 
+
+    Fr, hc, lc, hr, lr = getCrispVersionParameters(w0, CRISP_version)
+    
+    mask = d[:,:,nwav//2] / median(d[:,:,nwav//2])  > 0.08
+    cdef double mean_hr = median(ascontiguousarray(par[:,:,2][mask]))
+    
+    
+    print("[info] fit_hre_CRISP: Fratio={:.1f}, hc={:.1f}um, hr={:.3f}, lc={:.1f}um, lr={:.3f}"
+          .format(Fr, hc*1.e-4, hr, lc*1.e-4, lr))
+
+    
+    
+    lr += median(erl[mask])
+    hr += mean_hr
+    
     
     # --- Init fpi class, one per threat ---
     
     cdef vector[cFPI*] fpis;
     cdef int ii = 0
 
-    Fr, hc, lc, hr, lr = getCrispVersionParameters(w0, CRISP_version)
-    print("[info] fit_hre_CRISP: Fratio={:.1f}, hc={:.1f}um, hr={:.3f}, lc={:.1f}um, lr={:.3f}"
-          .format(Fr, hc*1.e-4, hr, lc*1.e-4, lr))
-    
+
     for ii in range(nthreads):
-        fpis.push_back(new cFPI(w0, Fr, hc, lc, hr, lr, nrays_hr, nrays_lr));
+        fpis.push_back(new cFPI(w0, Fr, hc, lc, hr, lr, nrays_hr, nrays_lr, dont_refocus));
 
 
     # --- Reinterpolate FTS to an wavelength appropriate grid? ---
@@ -716,6 +744,10 @@ def fit_hre_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim=1] si
     dt = time.time() - dt
     print("[info] fit_hre_CRISP: total elapsed time -> {:.1f}s".format(dt))
 
+    # --- correct the reflectivity error with the mean_lr ---
+
+    par[:,:,2] -= mean_hr
+    
     
     # --- cleanup pointers ----
 
@@ -742,6 +774,7 @@ def fit_all_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] dh, ar[ft,ndim=1] s
     cdef long nwavl = wavl.size
     cdef long npar = par.shape[2]
     cdef long nftsh = ftsx.size
+    cdef bool dont_refocus = False
 
     cdef ft dwh = (ftsx[10] - ftsx[0]) * 0.1
 
@@ -761,7 +794,7 @@ def fit_all_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] dh, ar[ft,ndim=1] s
     Fr, hc, lc, hr, lr = getCrispVersionParameters(w0, CRISP_version)
 
     for ii in range(nthreads):
-        fpis.push_back(new cFPI(w0, Fr, hc, lc, hr, lr, nrays_hr, nrays_lr));
+        fpis.push_back(new cFPI(w0, Fr, hc, lc, hr, lr, nrays_hr, nrays_lr, dont_refocus));
 
     
     
@@ -834,7 +867,7 @@ cdef class CRISP:
     
     def __cinit__(self, double w0, double Fr=-1.0, double hc = -1, double lc = -1,
                   double hr = -1.0, double lr = -1.0, int nrays_hr = 5, int nrays_lr = 5, verbose = True,
-                  int version = 2):
+                  int version = 2, bool dont_refocus = False):
 
         cdef double dum = 0;
 
@@ -862,7 +895,7 @@ cdef class CRISP:
             if(lc < 0.0):
                 lc = 295.5e4
                 
-        self.cfpi = new cFPI(w0, Fr, hc, lc, hr, lr, nrays_hr, nrays_lr);
+        self.cfpi = new cFPI(w0, Fr, hc, lc, hr, lr, nrays_hr, nrays_lr, dont_refocus);
         
         if(verbose):
             print("[info] CRISP{5:d}::__cinit__: C++ object initialized at lambda ={0:8.2f} nm, hr={3:f}, lr={4:f}, Fratio={6:.1f}, nrays_hr={1:d}, nrays_lr={2:d}".format(w0*0.1, nrays_hr, nrays_lr, self.cfpi.hr, self.cfpi.lr, version,Fr))

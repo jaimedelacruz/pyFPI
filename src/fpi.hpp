@@ -100,7 +100,7 @@ namespace fpi{
     
     FPI(ft const icw, ft const iFR, ft const ishr, ft const islr,
 	ft const irh, ft const irl,
-	int const iNRAYS_HR, int const iNRAYS_LR);
+	int const iNRAYS_HR, int const iNRAYS_LR, bool const dont_refocus);
 
     // -------------------------------------------------------------- //
 
