@@ -223,7 +223,7 @@ namespace lm{
 	// --- Compute right-hand side of the system --- //
 	
 	double sum = 0.0;
-	for(int ww = 0; ww<nDat; ww++) sum += Jj[ww] * r[ww];
+	for(int ww = 0; ww<nDat; ++ww) sum += Jj[ww] * r[ww];
 	B[jj] = static_cast<T>(sum); 
 	
 	
@@ -233,8 +233,8 @@ namespace lm{
       
       // --- Solve linear system to get solution --- //
       
-      //Eigen::ColPivHouseholderQR<Mat> sy(A); // Also rank revealing but much faster than SVD
-      Eigen::JacobiSVD<Mat> sy(A,Eigen::ComputeThinU | Eigen::ComputeThinV); // Also rank revealing but much faster than SVD
+      Eigen::ColPivHouseholderQR<Mat> sy(A); // Also rank revealing but much faster than SVD
+      //Eigen::JacobiSVD<Mat> sy(A,Eigen::ComputeThinU | Eigen::ComputeThinV); // Also rank revealing but much faster than SVD
 
       //sy.setThreshold(1.e-14);
       Vec dm = sy.solve(B);

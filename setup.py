@@ -18,7 +18,7 @@ if(plt.system() == 'Darwin'):
     CC = 'clang-mp-19'
     CXX= 'clang++-mp-19'
     link_opts = ["-bundle","-undefined","dynamic_lookup", "-fopenmp"]
-    comp_flags = ["-mcpu=native", "-fcomplex-arithmetic=basic"]
+    comp_flags = ["-mcpu=apple-m3", "-fcomplex-arithmetic=basic"]
 else:
     root_dir = '/usr/'
     CC = 'gcc'
@@ -35,13 +35,13 @@ os.environ["CXX"] = CXX
 debug = False
 
 if(debug):
-    comp_flags += ['-Os', '-g3','-fstrict-aliasing',"-ffast-math",\
+    comp_flags += ['-Os', '-g3','-fstrict-aliasing',\
                    '-std=c++20','-fPIC','-fopenmp', '-I./src',\
                    "-DNPY_NO_DEPRECATED_API", '-pedantic', '-Wall']
 else:
-    comp_flags += ['-O3','-g0','-fstrict-aliasing',"-pipe",\
+    comp_flags += ['-O3','-ffast-math', "-g0", \
                    '-std=c++20','-fopenmp', '-I./src', "-DNPY_NO_DEPRECATED_API",\
-                   '-DNDEBUG',  "-flto", "-fstrict-aliasing"]
+                   '-DNDEBUG',  "-fstrict-aliasing"]
     
 
 
@@ -54,7 +54,7 @@ extension = Extension("pyFPI",
                       extra_compile_args=comp_flags,
                       extra_link_args=comp_flags+link_opts,
                       library_dirs=['./',"/usr/lib/",root_dir+"/lib/"],
-                      libraries=['fftw3'])
+                      libraries=['fftw3','profiler'])
 
 extension.cython_directives = {'language_level': "3"}
 

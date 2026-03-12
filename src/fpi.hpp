@@ -90,6 +90,7 @@ namespace fpi{
     Arr1D<ft> betah_lr;
     Arr1D<ft> betah_hr;
     std::vector<std::complex<ft>> zern4;
+    std::vector<std::complex<ft>> zern4_conv;
 
     
     std::unique_ptr<mth::fftconv1D<ft>> convolver;
@@ -102,6 +103,10 @@ namespace fpi{
 	ft const irh, ft const irl,
 	int const iNRAYS_HR, int const iNRAYS_LR, bool const dont_refocus);
 
+    // -------------------------------------------------------------- //
+
+    void optimize_Zernike_conv();
+    
     // -------------------------------------------------------------- //
 
     void optimize_Zernike();
@@ -250,6 +255,33 @@ namespace fpi{
     // -------------------------------------------------------------- //
 
     void dual_fpi_full_complex_individual_der(int const N1, const ft* const tw, ft* const htr, ft* const ltr,
+					      ft* const dtr, ft const erh, ft const erl, ft const ech,
+					      ft const ecl,  bool const normalize_ltr,
+					      bool const normalize_htr)const;
+    
+    // -------------------------------------------------------------- //
+    
+    void dual_fpi_conv_complex(int const N1, const ft* const tw, ft* const tr,
+			       ft const erh, ft const erl, ft const ech,
+			       ft const ecl, bool const normalize)const;
+    
+    // -------------------------------------------------------------- //
+    
+    void dual_fpi_conv_complex_der(int const N1, const ft* const tw, ft* const tr,
+				   ft* const dtr, ft const erh, ft const erl, ft const ech,
+				   ft const ecl, bool const normalize)const;
+    
+    // -------------------------------------------------------------- //
+    
+    void dual_fpi_conv_complex_individual(int const N1, const ft* const tw,
+					  ft* const htr, ft* const ltr,
+					  ft const erh, ft const erl, ft const ech,
+					  ft const ecl,  bool const normalize_ltr,
+					  bool const normalize_htr)const;
+    
+    // -------------------------------------------------------------- //
+    
+    void dual_fpi_conv_complex_individual_der(int const N1, const ft* const tw, ft* const htr, ft* const ltr,
 					      ft* const dtr, ft const erh, ft const erl, ft const ech,
 					      ft const ecl,  bool const normalize_ltr,
 					      bool const normalize_htr)const;

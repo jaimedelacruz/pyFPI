@@ -78,7 +78,12 @@ cdef extern from "fpi.hpp" namespace "fpi":
 			            ft* const tr,
                                     ft erh, ft erl,
 			            ft ech, ft ecl, bool normalize_tr)const;
-                  
+         
+         void dual_fpi_conv_complex(int N1,  ft* const tw,
+                            ft* const tr,
+                            ft erh, ft erl,
+                            ft ech, ft ecl, bool normalize_tr)const;
+         
          void dual_fpi_full_der(int N1,  ft* const tw,
 			        ft* const tr, ft* const dtr,
                                 ft erh, ft erl,
@@ -88,6 +93,11 @@ cdef extern from "fpi.hpp" namespace "fpi":
                         ft* const tr, ft* const dtr,
                         ft erh, ft erl,
                         ft ech, ft ecl, bool normalize_tr)const;
+         
+         void dual_fpi_conv_complex_der(int N1,  ft* const tw,
+                                ft* const tr, ft* const dtr,
+                                ft erh, ft erl,
+                                ft ech, ft ecl, bool normalize_tr)const;
          
          void dual_fpi_full_individual_der(int N1,  ft* const tw,
 			                   ft* const htr, ft* const ltr,
@@ -106,6 +116,12 @@ cdef extern from "fpi.hpp" namespace "fpi":
                             ft erh, ft erl,
                             ft ech, ft ecl, bool normalize_ltr,
                             bool normalize_htr)const;
+
+         void dual_fpi_conv_complex_individual(int N1,  ft* const tw,
+                                ft* const htr, ft* const ltr,
+                                ft erh, ft erl,
+                                ft ech, ft ecl, bool normalize_ltr,
+                                bool normalize_htr)const;
          
          void dual_fpi_full_complex_individual_der(int N1,  ft* const tw,
                                     ft* const htr, ft* const ltr,
@@ -113,12 +129,19 @@ cdef extern from "fpi.hpp" namespace "fpi":
                                     ft ech, ft ecl, bool normalize_ltr,
                                     bool normalize_htr)const;
          
-         void dual_fpi_conv_individual_der(int N1,  ft* const tw,
-			                   ft* const htr, ft* const ltr,
-                                           ft* const dtr, ft erh, ft erl,
-			                   ft ech, ft ecl, bool normalize_ltr,
-                                           bool normalize_htr)const;
 
+         void dual_fpi_conv_individual_der(int N1,  ft* const tw,
+                                ft* const htr, ft* const ltr,
+                                ft* const dtr, ft erh, ft erl,
+                                ft ech, ft ecl, bool normalize_ltr,
+                                bool normalize_htr)const;
+         
+         void dual_fpi_conv_complex_individual_der(int N1,  ft* const tw,
+                                    ft* const htr, ft* const ltr,
+                                    ft* const dtr, ft erh, ft erl,
+                                    ft ech, ft ecl, bool normalize_ltr,
+                                    bool normalize_htr)const;
+         
          
          void dual_fpi_conv_individual(int N1,  ft* const tw,
 			               ft* const htr, ft* const ltr,
@@ -441,6 +464,9 @@ def fit_lre_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim=1] si
     lr += mean_lr
     hr += mean_hr
 
+    par[:,:,2] -= mean_lr
+    erh -= mean_hr
+    
     
     # --- Init fpi class ---
     
@@ -483,8 +509,8 @@ def fit_lre_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim=1] si
 
     # --- correct the reflectivity error with the mean_lr ---
 
-    par[:,:,2] -= mean_lr
-    
+    par[:,:,2] += mean_lr
+    erh += mean_hr
     
     # --- cleanup ---
 
@@ -646,14 +672,16 @@ def fit_hre_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim=1] si
     
     mask = d[:,:,nwav//2] / median(d[:,:,nwav//2])  > 0.08
     cdef double mean_hr = median(ascontiguousarray(par[:,:,2][mask]))
-    
+    cdef double mean_lr = median(erl[mask])
     
     print("[info] fit_hre_CRISP: Fratio={:.1f}, hc={:.1f}um, hr={:.3f}, lc={:.1f}um, lr={:.3f}"
           .format(Fr, hc*1.e-4, hr, lc*1.e-4, lr))
 
     
+    par[:,:,2] -= mean_hr
+    erl -= mean_lr
     
-    lr += median(erl[mask])
+    lr += mean_lr
     hr += mean_hr
     
     
@@ -746,8 +774,8 @@ def fit_hre_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim=1] si
 
     # --- correct the reflectivity error with the mean_lr ---
 
-    par[:,:,2] -= mean_hr
-    
+    par[:,:,2] += mean_hr
+    erl        += mean_lr
     
     # --- cleanup pointers ----
 
@@ -1072,6 +1100,37 @@ cdef class CRISP:
 
     # ------------------------------------------------------
 
+    cpdef dual_fpi_conv_complex(self, ar[ft,ndim=1] tw, ft erh=0.0, ft erl = 0.0, ft ech = 0.0,\
+                            ft ecl = 0.0, bool normalize_tr=False ):
+        """
+        Calculates the dual-etalon combined profile including the convergence of the telecentric beam.
+        It neglects the tilt of the LRE and assumes axial-symmetry. Faster than dual_fpi_full_complex.
+        In this case, the integral is performed over transmission profile of the
+        electric field vector, instead of operating with the intensity tranmission directly.
+        
+        Input:
+        tw: wavelength offset grid [Angstroms] used to compute the profile. 1D float64 array.
+        erh: HRE reflectivity error (fraction). This float number is added to the nominal HRE reflectivity.
+        erh: LRE reflectivity error (fraction). This float number is added to the nominal LRE reflectivity.
+        ech: HRE cavity error [Angstrom]. This float number is added to the nominal HRE cavity separation.
+        ecl: LRE cavity error [Angstrom]. This float number is added to the nominal LRE cavity separation.
+        Note that the ecl is relative to the position of the HRE.
+        normalize_tr: if set, the returned profile is area-normalized (for convolutions). Bool-type.
+        
+        Output:
+           tr: the effective transmission profile of the system, evaluated at "tw".
+
+        """
+        cdef int nw = tw.size
+        cdef ar[ft,ndim=1] tr = zeros(nw,dtype='float64')
+    
+        self.cfpi.dual_fpi_conv_complex(<int>nw, <ft*>tw.data, <ft*>tr.data, <ft>erh, \
+                                    <ft>erl, <ft>ech, <ft>ecl, <bool>normalize_tr)
+    
+        return tr
+    
+    # ------------------------------------------------------
+
     cpdef dual_fpi_conv_der(self, ar[ft,ndim=1] tw, ft erh=0.0, ft erl = 0.0,
                             ft ech = 0.0, ft ecl = 0.0, bool normalize_tr=False):
         """
@@ -1105,6 +1164,42 @@ cdef class CRISP:
     
         return tr, dtr
 
+    # ------------------------------------------------------
+
+    cpdef dual_fpi_conv_complex_der(self, ar[ft,ndim=1] tw, ft erh=0.0, ft erl = 0.0,
+                                ft ech = 0.0, ft ecl = 0.0, bool normalize_tr=False):
+        """
+        Calculates the dual-etalon combined profile including the convergence of the telecentric beam.
+        It neglects the tilt of the LRE and assumes axial-symmetry. Faster than dual_fpi_full_complex.
+        In this case, the integral is performed over transmission profile of the
+        electric field vector, instead of operating with the intensity tranmission directly.
+        
+        Additionally, this function also calculates analytical derivatives of the transmission profile
+        relative to the input reflectivities and cavity errors.
+        
+        Input:
+            tw: wavelength offset grid [Angstroms] used to compute the profile. 1D float64 array.
+           erh: HRE reflectivity error (fraction). This float number is added to the nominal HRE reflectivity.
+           erh: LRE reflectivity error (fraction). This float number is added to the nominal LRE reflectivity.
+           ech: HRE cavity error [Angstrom]. This float number is added to the nominal HRE cavity separation.
+           ecl: LRE cavity error [Angstrom]. This float number is added to the nominal LRE cavity separation.
+                Note that the ecl is relative to the position of the HRE.
+        normalize_tr: if set, the returned profile is area-normalized (for convolutions). Bool-type.
+
+        Output:
+           tr: the effective transmission profile of the system, evaluated at "tw".
+          dtr: a 4D array with the derivatives of tr relative to the 4 parameters (erh, erl, ech, ecl).
+
+        """
+        
+        cdef int nw = tw.size
+        cdef ar[ft,ndim=1] tr = zeros(nw,dtype='float64')
+        cdef ar[ft,ndim=2] dtr = zeros((4,nw),dtype='float64')
+
+        self.cfpi.dual_fpi_conv_complex_der(<int>nw, <ft*>tw.data, <ft*>tr.data, <ft*>dtr.data, <ft>erh, \
+                                        <ft>erl, <ft>ech, <ft>ecl, <bool>normalize_tr)
+    
+        return tr, dtr
 
     # ------------------------------------------------------
 
@@ -1273,7 +1368,40 @@ cdef class CRISP:
     
         return htr, ltr
 
+    # ------------------------------------------------------
 
+    cpdef dual_fpi_conv_complex_individual(self, ar[ft,ndim=1] tw, ft erh=0.0, ft erl = 0.0, ft ech = 0.0,\
+                                    ft ecl = 0.0, bool normalize_ltr=False, bool normalize_htr=False ):
+        """
+        Calculates the dual-etalon individual profiles for a ray with incidence angle "angle" relative
+        to the normal of the surface of the etalon (defaul = 0, perpendicular incidence).
+        In this case, the integral is performed over transmission profile of the
+        electric field vector, instead of operating with the intensity tranmission directly.
+        
+        Input:
+            tw: wavelength offset grid [Angstroms] used to compute the profile. 1D float64 array.
+           erh: HRE reflectivity error (fraction). This float number is added to the nominal HRE reflectivity.
+           erh: LRE reflectivity error (fraction). This float number is added to the nominal LRE reflectivity.
+           ech: HRE cavity error [Angstrom]. This float number is added to the nominal HRE cavity separation.
+           ecl: LRE cavity error [Angstrom]. This float number is added to the nominal LRE cavity separation.
+                Note that the ecl is relative to the position of the HRE.
+         angle: angle of incidence relative to the normal of the surface of the etalon (radians). 
+        normalize_tr: if set, the returned profile is area-normalized (for convolutions). Bool-type.
+
+        Output:
+           htr: the transmission profile of the HRE, evaluated at "tw".
+           ltr: the transmission profile of the HRE, evaluated at "tw".
+        """    
+        cdef int nw = tw.size
+        cdef ar[ft,ndim=1] htr = zeros(nw,dtype='float64')
+        cdef ar[ft,ndim=1] ltr = zeros(nw,dtype='float64')
+    
+        self.cfpi.dual_fpi_conv_complex_individual(<int>nw, <ft*>tw.data, <ft*>htr.data, <ft*>ltr.data, <ft>erh, \
+                                            <ft>erl, <ft>ech, <ft>ecl, <bool>normalize_ltr,
+                                            <bool>normalize_htr)
+    
+        return htr, ltr
+    
     # ------------------------------------------------------
 
     cpdef dual_fpi_conv_individual_der(self, ar[ft,ndim=1] tw, ft erh=0.0, ft erl = 0.0,
@@ -1311,7 +1439,47 @@ cdef class CRISP:
                                                <bool>normalize_ltr, <bool>normalize_htr)
     
         return htr,ltr, dtr
+    
+    # ------------------------------------------------------
 
+    cpdef dual_fpi_conv_complex_individual_der(self, ar[ft,ndim=1] tw, ft erh=0.0, ft erl = 0.0,
+                                ft ech = 0.0, ft ecl = 0.0, bool normalize_ltr=False, bool normalize_htr=False):
+        """
+        Calculates the dual-etalon individual profiles for a ray with incidence angle "angle" relative
+        to the normal of the surface of the etalon (defaul = 0, perpendicular incidence).
+        In this case, the integral is performed over transmission profile of the
+        electric field vector, instead of operating with the intensity tranmission directly.
+        
+        Additionally, this function returns the analytical derivatives of the transmission profiles
+        relative to the input cavity errors and reflectivities. Note that the LRE also has a dependence on
+        the ECH because we take the cavity separation of the HRE as the wavelength reference.
+        
+        Input:
+            tw: wavelength offset grid [Angstroms] used to compute the profile. 1D float64 array.
+           erh: HRE reflectivity error (fraction). This float number is added to the nominal HRE reflectivity.
+           erh: LRE reflectivity error (fraction). This float number is added to the nominal LRE reflectivity.
+           ech: HRE cavity error [Angstrom]. This float number is added to the nominal HRE cavity separation.
+           ecl: LRE cavity error [Angstrom]. This float number is added to the nominal LRE cavity separation.
+                Note that the ecl is relative to the position of the HRE.
+         angle: angle of incidence relative to the normal of the surface of the etalon (radians). 
+        normalize_tr: if set, the returned profile is area-normalized (for convolutions). Bool-type.
+
+        Output:
+           htr: the transmission profile of the HRE, evaluated at "tw".
+           ltr: the transmission profile of the HRE, evaluated at "tw".
+           dtr: derivative array (dhtr_derh, dltr_derl, dhtr_dech, dltr_decl, dltr_dech)
+        """
+        cdef int nw = tw.size
+        cdef ar[ft,ndim=1] htr = zeros(nw,dtype='float64')
+        cdef ar[ft,ndim=1] ltr = zeros(nw,dtype='float64')
+        cdef ar[ft,ndim=2] dtr = zeros((5,nw),dtype='float64')
+
+        self.cfpi.dual_fpi_conv_complex_individual_der(<int>nw, <ft*>tw.data, <ft*>htr.data, <ft*>ltr.data,\
+                                                <ft*>dtr.data, <ft>erh, <ft>erl, <ft>ech, <ft>ecl, \
+                                                <bool>normalize_ltr, <bool>normalize_htr)
+    
+        return htr, ltr, dtr
+    
     # ------------------------------------------------------
 
     cpdef dual_fpi_full_complex_individual(self, ar[ft,ndim=1] tw, ft erh=0.0, ft erl = 0.0, ft ech = 0.0,\
@@ -1417,6 +1585,7 @@ cdef class CRISP:
                                                <bool>normalize_ltr, <bool>normalize_htr)
     
         return htr,ltr, dtr
+    
     # ------------------------------------------------------
 
     cpdef dual_fpi_full_complex_individual_der(self, ar[ft,ndim=1] tw, ft erh=0.0, ft erl = 0.0,
