@@ -15,8 +15,8 @@ root_dir = str(pathlib.Path(*p.parts[0:-2]))
 
 if(plt.system() == 'Darwin'):
     root_dir = '/opt/local/' # using this one if macports are installed
-    CC = 'clang-mp-19'
-    CXX= 'clang++-mp-19'
+    CC = 'clang'
+    CXX= 'clang++'
     link_opts = ["-bundle","-undefined","dynamic_lookup", "-fopenmp"]
     comp_flags = ["-mcpu=apple-m3", "-fcomplex-arithmetic=basic"]
 else:
@@ -60,7 +60,7 @@ extension.cython_directives = {'language_level': "3"}
 
 setup(
     name = 'pyFPI',
-    version = '1.0',
+    version = '2.0',
     author = 'J. de la Cruz Rodriguez (ISP-SU 2025)',
     ext_modules=[extension],
     cmdclass = {'build_ext': build_ext}

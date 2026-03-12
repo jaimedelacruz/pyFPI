@@ -157,7 +157,7 @@ void fpi::FPI::optimize_Zernike_conv()
   // --- init angles --- //
 
   for(int ii=0; ii<fpi::NRAYS; ++ii){
-    angles[ii] = std::acos(this->betah_hr[ii] / (2*PI))*2*this->FR;
+    angles[ii] = std::acos(this->calp[ii] / (2*PI))*2*this->FR;
   }
 
   
@@ -326,6 +326,15 @@ void SinMany(long const N, ft* const __restrict__ d)
   for(long ii=0; ii<N; ++ii){
     d[ii] = std::sin(d[ii]);
   }   
+}
+
+// ********************************************************************* //
+
+template<typename T>
+inline void sincos(T const& psi, T* const sinpsi, T* const cospsi)
+{
+  *sinpsi = std::sin(psi);
+  *cospsi = std::cos(psi);
 }
 
 // ********************************************************************* //
@@ -1442,3 +1451,472 @@ void fpi::FPI::dual_fpi_conv_complex_individual_der(int const N1, const ft* cons
 
 // ********************************************************************* //
 
+void fpi::FPI::dual_fpi_ray_complex(int const N1, const ft* const tw,
+				    ft* const tr,
+				    ft const erh, ft const erl,
+				    ft const ech, ft const ecl,
+				    ft const angle, bool const normalize)const
+{
+
+  
+  // --- Total reflectivity --- //
+  
+  ft const thr = hr + erh;
+  ft const tlr = lr + erl;
+  
+  
+  // --- Finesse --- //
+  
+  ft const fhr = ft(4) * thr / mth::SQ(ft(1) - thr);
+  ft const flr = ft(4) * tlr / mth::SQ(ft(1) - tlr);
+
+
+  // --- precompute quantities --- //
+  
+  ft const decl_ech = lc/hc;
+  ft const ecl_ech = ecl + ech*decl_ech; // include the HR cavity error
+  
+  ft const ca = two_pi * std::cos(angle);
+  ft const phr = (hc+ech) * ca;
+  ft const plr = (lc+ecl_ech) * ca;
+
+  ft const cLRE = ft(1)/(ft(1)-tlr);
+  ft const cHRE = ft(1)/(ft(1)-thr);
+
+  
+  // --- wavelength loop --- //
+  
+  for(int ii=0; ii<N1; ++ii){
+    ft const wav1 = ft(1) / ( tw[ii] + cw);
+    ft const psi_lr = plr * wav1;
+    ft const psi_hr = phr * wav1;
+    
+    ft const sinp_hr = std::sin(psi_hr);
+    ft const sinp_lr = std::sin(psi_lr);
+    ft const cosp_hr = std::cos(psi_hr);
+    ft const cosp_lr = std::cos(psi_lr);
+
+    ft const lre_real = cLRE / (ft(1) + flr * mth::SQ(sinp_lr));
+    ft const hre_real = cHRE / (ft(1) + fhr * mth::SQ(sinp_hr));
+    
+    std::complex<ft> const tr_nu = std::complex<ft>(hre_real * (ft(1)-thr)*cosp_hr, hre_real *(ft(1)+thr)*sinp_hr) *
+      std::complex<ft>(lre_real * (ft(1)-tlr)*cosp_lr, lre_real *(ft(1)+tlr)*sinp_lr);
+
+    tr[ii] = (tr_nu * std::conj(tr_nu)).real();
+  }
+
+
+  if(normalize){
+
+    ft suma = ft(0);
+    
+    for(int ii=0; ii<N1; ++ii)
+      suma += tr[ii];
+
+    suma = ft(1) / suma;
+    
+    
+    // --- area normalize --- //
+    
+    for(int ii=0; ii<N1; ++ii)
+      tr[ii] *= suma;
+  }
+}
+
+// ********************************************************************* //
+
+void fpi::FPI::dual_fpi_ray_complex_der(int const N1, const ft* const tw,
+					ft* const tr, ft* const dtr,
+					ft const erh, ft const erl,
+					ft const ech, ft const ecl,
+					ft const angle, bool const normalize)const
+{
+
+  // --- Total reflectivity --- //
+  
+  ft const thr = hr + erh;
+  ft const tlr = lr + erl;
+  
+  constexpr ft const dthr_derh = ft(1);
+  constexpr ft const dtlr_derl = ft(1);
+  
+  
+  // --- Finesse --- //
+  
+  ft const fhr = ft(4) * thr / mth::SQ(ft(1) - thr);
+  ft const flr = ft(4) * tlr / mth::SQ(ft(1) - tlr);
+
+
+  // --- precompute quantities --- //
+  
+  ft const decl_ech = lc/hc;
+  ft const ecl_ech = ecl + ech*decl_ech; // include the HR cavity error
+
+  ft const dfhr_derh = fhr * (ft(1) / thr + ft(2) / (ft(1)-thr)) * dthr_derh;
+  ft const dflr_derl = flr * (ft(1) / tlr + ft(2) / (ft(1)-tlr)) * dtlr_derl;
+  
+  ft const ca = two_pi * std::cos(angle);
+  ft const phr = (hc+ech) * ca;
+  ft const plr = (lc+ecl_ech) * ca;
+
+  ft const dphr_dech = ca;
+  ft const dplr_decl = ca;
+  
+  ft const cLRE = ft(1)/(ft(1)-tlr);
+  ft const cHRE = ft(1)/(ft(1)-thr);
+
+
+  // --- Init pointers for derivatives --- //
+
+  ft* const dtr_derh = dtr;
+  ft* const dtr_derl = dtr + 1*N1;
+  ft* const dtr_dech = dtr + 2*N1;
+  ft* const dtr_decl = dtr + 3*N1;
+
+  
+  // --- wavelength loop --- //
+  
+  for(int ii=0; ii<N1; ++ii){
+    ft const wav1 = ft(1) / ( tw[ii] + cw);
+    ft const psi_lr = plr * wav1;
+    ft const psi_hr = phr * wav1;
+    ft const dpsi_lr =  dplr_decl * wav1;
+    ft const dpsi_hr =  dphr_dech * wav1;
+    
+    ft sinp_hr, sinp_lr, cosp_hr, cosp_lr;
+    sincos(psi_lr, &sinp_lr, &cosp_lr), sincos(psi_hr, &sinp_hr, &cosp_hr);
+
+    ft const denom_lr =  ft(1) + flr * mth::SQ(sinp_lr);     
+    ft const lre_real = cLRE / denom_lr;
+    
+    
+    ft const denom_hr =  ft(1) + fhr * mth::SQ(sinp_hr);
+    ft const hre_real = cHRE / denom_hr;
+    
+    
+    std::complex<ft> const tr_hr(hre_real * (ft(1)-thr)*cosp_hr, hre_real *(ft(1)+thr)*sinp_hr);
+    std::complex<ft> const tr_lr(lre_real * (ft(1)-tlr)*cosp_lr, lre_real *(ft(1)+tlr)*sinp_lr);
+    std::complex<ft> const tr_nu = tr_lr * tr_hr;
+    
+	  
+    // --- Store dlr_dcl to propagate the dcl_dch, given that ech sets the zero point --- //
+      
+    std::complex<ft> const dlr_dcl = tr_hr * dpsi_lr*(lre_real*std::complex<ft>((tlr-ft(1))*sinp_lr,(ft(1)+tlr)*cosp_lr) -
+						      (ft(2)*flr*sinp_lr*cosp_lr/denom_lr) * tr_lr);
+
+    
+    
+    // --- derivative with respect to CH --- //
+    
+    std::complex<ft>  dhr_dch =  ((hre_real*std::complex<ft>((thr-ft(1))*sinp_hr,(ft(1)+thr)*cosp_hr) -
+				   (2*fhr*sinp_hr*cosp_hr/denom_hr) * tr_hr)*dpsi_hr);
+      
+
+    std::complex<ft> const dtr_dch = dhr_dch*tr_lr + dlr_dcl * decl_ech ; // *tr_hr already included in dlr_dcl
+      
+      
+    // --- derivative with respect to HR --- //
+      
+    std::complex<ft> const dhr_dthr = tr_lr * (tr_hr * (cHRE - (dfhr_derh * mth::SQ(sinp_hr)/denom_hr)) +
+				       hre_real * (std::complex<ft>(-cosp_hr,sinp_hr)));
+      
+      
+      
+      // --- derivative with respect to LR --- //
+      
+    std::complex<ft> const dlr_dtlr = tr_hr * (tr_lr * (cLRE - (dflr_derl * mth::SQ(sinp_lr)/denom_lr)) +
+				       lre_real * (std::complex<ft>(-cosp_lr,sinp_lr)));
+      
+      
+    
+    
+    tr[ii] = (tr_nu * std::conj(tr_nu)).real();
+    dtr_derl[ii] = (tr_nu*std::conj(dlr_dtlr) + std::conj(tr_nu)*dlr_dtlr).real(); 
+    dtr_derh[ii] = (tr_nu*std::conj(dhr_dthr) + std::conj(tr_nu)*dhr_dthr).real();
+    dtr_decl[ii] = (tr_nu*std::conj(dlr_dcl)  + std::conj(tr_nu)*dlr_dcl).real();
+    dtr_dech[ii] = (tr_nu*std::conj(dtr_dch)  + std::conj(tr_nu)*dtr_dch).real();
+    
+  }
+
+
+  // --- Area normalization of the profile and derivatives? --- //
+
+  if(normalize){
+    ft sum = ft(0);
+    ft sum1 = ft(0);
+    ft sum2 = ft(0);
+    
+    
+    for(int ii=0; ii<N1; ++ii){
+      sum += tr[ii];
+      sum1+= dtr_derh[ii];
+      sum2+= dtr_derl[ii];
+    }
+    
+    sum = ft(1) / sum;
+    ft const sum3 = sum*sum;
+    
+    for(int ii=0; ii<N1; ++ii){
+      
+      dtr_dech[ii] *= sum;
+      dtr_decl[ii] *= sum;
+      dtr_derh[ii] = dtr_derh[ii]*sum - sum3*tr[ii]*sum1;	
+      dtr_derl[ii] = dtr_derl[ii]*sum - sum3*tr[ii]*sum2;
+      tr[ii] *= sum;
+    }
+  }
+  
+  
+}
+
+// ********************************************************************* //
+
+void fpi::FPI::dual_fpi_ray_complex_individual(int const N1, const ft* const tw, ft* const htr, ft* const ltr,
+					       ft const erh, ft const erl, ft const ech,
+					       ft const ecl,  ft const angle, bool const normalize_ltr,
+					       bool const normalize_htr)const
+{
+  // --- Total reflectivity --- //
+  
+  ft const thr = hr + erh;
+  ft const tlr = lr + erl;
+  
+  
+  // --- Finesse --- //
+  
+  ft const fhr = ft(4) * thr / mth::SQ(ft(1) - thr);
+  ft const flr = ft(4) * tlr / mth::SQ(ft(1) - tlr);
+
+
+  // --- precompute quantities --- //
+  
+  ft const decl_ech = lc/hc;
+  ft const ecl_ech = ecl + ech*decl_ech; // include the HR cavity error
+  
+  ft const ca = two_pi * std::cos(angle);
+  ft const phr = (hc+ech) * ca;
+  ft const plr = (lc+ecl_ech) * ca;
+
+  ft const cLRE = ft(1)/(ft(1)-tlr);
+  ft const cHRE = ft(1)/(ft(1)-thr);
+
+  
+  // --- wavelength loop --- //
+  
+  for(int ii=0; ii<N1; ++ii){
+    ft const wav1 = ft(1) / ( tw[ii] + cw);
+    ft const psi_lr = plr * wav1;
+    ft const psi_hr = phr * wav1;
+    
+    ft sinp_hr, sinp_lr, cosp_hr, cosp_lr;
+    sincos(psi_lr, &sinp_lr, &cosp_lr), sincos(psi_hr, &sinp_hr, &cosp_hr);
+
+    ft const lre_real = cLRE / (ft(1) + flr * mth::SQ(sinp_lr));
+    ft const hre_real = cHRE / (ft(1) + fhr * mth::SQ(sinp_hr));
+    
+    std::complex<ft> const tr_hr(hre_real * (ft(1)-thr)*cosp_hr, hre_real *(ft(1)+thr)*sinp_hr);
+    std::complex<ft> const tr_lr(lre_real * (ft(1)-tlr)*cosp_lr, lre_real *(ft(1)+tlr)*sinp_lr);
+
+    htr[ii] = (tr_hr * std::conj(tr_hr)).real();
+    ltr[ii] = (tr_lr * std::conj(tr_lr)).real();
+    
+  }
+
+  
+  // --- Profiles normalization --- //
+  
+  if(normalize_ltr){
+    ft sum = 0;
+    for(int ii=0; ii<N1; ++ii){
+      sum += ltr[ii];
+    }
+    
+    sum = ft(1) / sum;
+    
+    for(int ii=0; ii<N1; ++ii){
+      ltr[ii] *= sum;
+    }
+  }
+
+  if(normalize_htr){
+    ft sum = 0;
+    for(int ii=0; ii<N1; ++ii){
+      sum += htr[ii];
+    }
+    
+    sum = ft(1) / sum;
+    
+    for(int ii=0; ii<N1; ++ii){
+      htr[ii] *= sum;
+    }
+  }
+  
+}
+
+// ********************************************************************* //
+
+void fpi::FPI::dual_fpi_ray_complex_individual_der(int const N1, const ft* const tw, ft* const htr, ft* const ltr,
+						   ft* const dtr, ft const erh, ft const erl, ft const ech,
+						   ft const ecl,  ft const angle, bool const normalize_ltr,
+						   bool const normalize_htr)const
+{
+  
+  // --- Total reflectivity --- //
+  
+  ft const thr = hr + erh;
+  ft const tlr = lr + erl;
+  
+  constexpr ft const dthr_derh = ft(1);
+  constexpr ft const dtlr_derl = ft(1);
+  
+  
+  // --- Finesse --- //
+  
+  ft const fhr = ft(4) * thr / mth::SQ(ft(1) - thr);
+  ft const flr = ft(4) * tlr / mth::SQ(ft(1) - tlr);
+  
+  
+  // --- precompute quantities --- //
+  
+  ft const decl_ech = lc/hc;
+  ft const ecl_ech = ecl + ech*decl_ech; // include the HR cavity error
+  
+  ft const dfhr_derh = fhr * (ft(1) / thr + ft(2) / (ft(1)-thr)) * dthr_derh;
+  ft const dflr_derl = flr * (ft(1) / tlr + ft(2) / (ft(1)-tlr)) * dtlr_derl;
+  
+  ft const ca = two_pi * std::cos(angle);
+  ft const phr = (hc+ech) * ca;
+  ft const plr = (lc+ecl_ech) * ca;
+
+  ft const dphr_dech = ca;
+  ft const dplr_decl = ca;
+  
+  ft const cLRE = ft(1)/(ft(1)-tlr);
+  ft const cHRE = ft(1)/(ft(1)-thr);
+
+
+  // --- Init pointers for derivatives --- //
+
+  ft* const dtr_derh = dtr;
+  ft* const dtr_derl = dtr + 1*N1;
+  ft* const dtr_dech = dtr + 2*N1;
+  ft* const dtr_decl = dtr + 3*N1;
+  ft* const dltr_dech = dtr + 4*N1;
+
+  
+  // --- wavelength loop --- //
+  
+  for(int ii=0; ii<N1; ++ii){
+    ft const wav1 = ft(1) / ( tw[ii] + cw);
+    ft const psi_lr = plr * wav1;
+    ft const psi_hr = phr * wav1;
+    ft const dpsi_lr =  dplr_decl * wav1;
+    ft const dpsi_hr =  dphr_dech * wav1;
+    
+    ft sinp_hr, sinp_lr, cosp_hr, cosp_lr;
+    sincos(psi_lr, &sinp_lr, &cosp_lr), sincos(psi_hr, &sinp_hr, &cosp_hr);
+
+    ft const denom_lr =  ft(1) + flr * mth::SQ(sinp_lr);     
+    ft const lre_real = cLRE / denom_lr;
+    
+    
+    ft const denom_hr =  ft(1) + fhr * mth::SQ(sinp_hr);
+    ft const hre_real = cHRE / denom_hr;
+    
+    
+    std::complex<ft> const tr_hr(hre_real * (ft(1)-thr)*cosp_hr, hre_real *(ft(1)+thr)*sinp_hr);
+    std::complex<ft> const tr_lr(lre_real * (ft(1)-tlr)*cosp_lr, lre_real *(ft(1)+tlr)*sinp_lr);
+    
+	  
+    // --- Store dlr_dcl to propagate the dcl_dch, given that ech sets the zero point --- //
+      
+    std::complex<ft> const dlr_dcl = dpsi_lr*(lre_real*std::complex<ft>((tlr-ft(1))*sinp_lr,(ft(1)+tlr)*cosp_lr) -
+						  (ft(2)*flr*sinp_lr*cosp_lr/denom_lr) * tr_lr);
+    
+    std::complex<ft> const dlr_dch =  dlr_dcl * decl_ech;
+    
+    
+    // --- derivative with respect to CH --- //
+    
+    std::complex<ft>  dhr_dch =  ((hre_real*std::complex<ft>((thr-ft(1))*sinp_hr,(ft(1)+thr)*cosp_hr) -
+					(2*fhr*sinp_hr*cosp_hr/denom_hr) * tr_hr)*dpsi_hr);
+      
+
+    std::complex<ft> const dtr_dch = dhr_dch*tr_lr + dlr_dcl * decl_ech * tr_hr;
+      
+      
+      // --- derivative with respect to HR --- //
+      
+    std::complex<ft> const dhr_dthr = (tr_hr * (cHRE - (dfhr_derh * mth::SQ(sinp_hr)/denom_hr)) +
+				       hre_real * (std::complex<ft>(-cosp_hr,sinp_hr)));
+      
+      
+      
+      // --- derivative with respect to LR --- //
+      
+    std::complex<ft> const dlr_dtlr = (tr_lr * (cLRE - (dflr_derl * mth::SQ(sinp_lr)/denom_lr)) +
+				       lre_real * (std::complex<ft>(-cosp_lr,sinp_lr)));
+      
+      
+    
+    htr[ii] = (tr_hr*std::conj(tr_hr)).real();
+    ltr[ii] = (tr_lr*std::conj(tr_lr)).real();
+
+    
+    // --- apply the chain rule to the derivative of tr --- //
+    
+    dtr_derl[ii] = (tr_lr*std::conj(dlr_dtlr) + std::conj(tr_lr)*dlr_dtlr).real();
+    dtr_derh[ii] = (tr_hr*std::conj(dhr_dthr) + std::conj(tr_hr)*dhr_dthr).real();
+    dtr_decl[ii] = (tr_lr*std::conj(dlr_dcl)  + std::conj(tr_lr)*dlr_dcl).real();
+    dtr_dech[ii] = (tr_hr*std::conj(dhr_dch)  + std::conj(tr_hr)*dhr_dch).real();
+    dltr_dech[ii] = (tr_lr*std::conj(dlr_dch)  + std::conj(tr_lr)*dlr_dch).real();
+    
+  }
+
+  
+  // --- Area normalization LRE --- //
+  
+  if(normalize_ltr){
+    ft sum = ft(0);
+    ft sum1 = ft(0);
+    
+    for(int ii=0; ii<N1; ++ii){
+      sum += ltr[ii];
+      sum1+= dtr_derl[ii];
+    }
+    
+    sum = ft(1) / sum;
+    ft const sum2 = sum*sum*sum1;
+    
+    for(int ii=0; ii<N1; ++ii){
+      dtr_decl[ii]  *= sum;
+      dltr_dech[ii] *= sum;
+      dtr_derl[ii] = dtr_derl[ii]*sum - sum2*ltr[ii];
+      ltr[ii] *= sum; 
+    }
+  }
+  
+  // --- Area normalization HRE --- //
+
+  if(normalize_htr){
+    ft sum = ft(0);
+    ft sum1 = ft(0);
+    
+    for(int ii=0; ii<N1; ++ii){
+      sum += htr[ii];
+      sum1+= dtr_derh[ii];
+    }
+    
+    sum = ft(1) / sum;
+    ft const sum2 = sum*sum*sum1;
+    
+    for(int ii=0; ii<N1; ++ii){
+      dtr_dech[ii] *= sum;
+      dtr_derh[ii]  = dtr_derh[ii]*sum - sum2*htr[ii];
+      htr[ii]      *= sum; 
+    }
+  }
+
+}
+
+// ********************************************************************* //
