@@ -54,14 +54,14 @@ extension = Extension("pyFPI",
                       extra_compile_args=comp_flags,
                       extra_link_args=comp_flags+link_opts,
                       library_dirs=['./',"/usr/lib/",root_dir+"/lib/"],
-                      libraries=['fftw3','profiler'])
+                      libraries=['fftw3'])
 
 extension.cython_directives = {'language_level': "3"}
 
 setup(
     name = 'pyFPI',
     version = '2.0',
-    author = 'J. de la Cruz Rodriguez (ISP-SU 2025)',
+    author = 'J. de la Cruz Rodriguez (ISP-SU 2025, 2026)',
     ext_modules=[extension],
     cmdclass = {'build_ext': build_ext}
 )
