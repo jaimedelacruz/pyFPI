@@ -18,7 +18,7 @@
    separate output arrays, instead of returning the product of the two. These
    are used in the LRE-scan dat fitting.
 
-   The class methods are implemented in fpi.cpp and fpi_individual.cpp.
+   The class methods are implemented in fpi.cpp, fpi_complex.cpp and fpi_individual.cpp.
 
    Coded by J. de la Cruz Rodriguez (ISP-SU, 2025)
 
@@ -27,7 +27,8 @@
        Scharmer (2006);
        de la Cruz Rodriguez (2010) (numerical project at SU);
        Scharmer, de la Cruz Rodriguez et al. (2013);
-       
+       Bailen, Orozco Suarez & del Toro Iniesta (2019);
+
 
    Comments:
        The derivatives can be trivially obtained by deriving each equation
