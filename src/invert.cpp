@@ -4,7 +4,6 @@
    Coded by J. de la Cruz Rodriguez (ISP-SU, 2025)
    --- */
 
-#include <gperftools/profiler.h>
 #include <vector>
 #include <omp.h>
 #include <cstdio>
@@ -102,7 +101,6 @@ void fpi::invert_hre_crisp(long const ny, long const nx, long const npar, long c
 					    nfts, fts_x, fts_y, wav, tw, fpi_method, no_pref,
 					    0.0, 0.0, use_observed_grid);
       
-      ProfilerStart("prof.txt");
 
 #pragma omp for schedule(dynamic,20)
       for( ipix = 0; ipix<npix; ++ipix){
@@ -152,8 +150,6 @@ void fpi::invert_hre_crisp(long const ny, long const nx, long const npar, long c
 	
       } // ipix
 
-      ProfilerFlush();
-      ProfilerStop();
 	
       // --- Cleanup data struct used in the fits --- //
       
