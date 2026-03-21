@@ -47,11 +47,11 @@ void fpi::invert_hre_crisp(long const ny, long const nx, long const npar, long c
 			   const float* const erl, bool const use_observed_grid)
 {
   constexpr const long npar_fixed = 9;
-  constexpr const int max_iter = 30;
-  constexpr const ft chi_lim = 0.0;
+  constexpr const int max_iter = 35;
+  constexpr const ft chi_lim = 0.01;
   constexpr const int delay_bracket = 4;
   constexpr const ft I_THRES = 1.e-2;
-  constexpr const ft init_lambda = 10.;
+  constexpr const ft init_lambda = 20.;
 
   
   // --- the parameters must be gain fractor, ech, erh, pr_w0, pr_fwhm, asym --- //

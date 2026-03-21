@@ -247,7 +247,7 @@ void fpi::FPI::dual_fpi_full_complex(int const N1, const ft* const tw, ft* const
     
   fpi::Arr2D<ft> sinp_hr = fpi::get_psi2(N1,cw+BlueShift,tw,hc+ech,betah_hr, psi_hr);
   
-  ft const ecl_ech = ecl + ech*(lc/hc); // include the HR cavity error
+  ft const ecl_ech = ecl + ech*(lc_tilted/hc); // include the HR cavity error
   fpi::Arr2D<ft> sinp_lr = fpi::get_psi2(N1,cw+BlueShift,tw,lc_tilted+ecl_ech,betah_lr, psi_lr);
 
   
@@ -351,9 +351,6 @@ void fpi::FPI::dual_fpi_full_complex_der(int const N1, const ft* const tw, ft* c
   ft const thr = hr + erh;
   ft const tlr = lr + erl;
   
-  constexpr ft const dthr_derh = ft(1);
-  constexpr ft const dtlr_derl = ft(1);
-
   
   // --- Finesse --- //
   
@@ -372,9 +369,9 @@ void fpi::FPI::dual_fpi_full_complex_der(int const N1, const ft* const tw, ft* c
   Arr2D<ft> cosp_hr = psi_hr;
   CosMany(NRAYS_HR*N1, &cosp_hr(0,0));
   
-  
-  ft const ecl_ech = ecl + ech*(lc/hc); // include the HR cavity error
-  ft const decl_ech = lc/hc;
+
+  ft const decl_ech = lc_tilted/hc;
+  ft const ecl_ech = ecl + ech*decl_ech; // include the HR cavity error
 
   fpi::Arr2D<ft> sinp_lr = fpi::get_psi2_der(N1,cw+BlueShift,tw,lc_tilted+ecl_ech,betah_lr, psi_lr, dpsi_lr);
   Arr2D<ft> cosp_lr = psi_lr;
@@ -556,7 +553,7 @@ void fpi::FPI::dual_fpi_full_complex_individual(int const N1, const ft* const tw
     
   fpi::Arr2D<ft> sinp_hr = fpi::get_psi2(N1,cw+BlueShift,tw,hc+ech,betah_hr, psi_hr);
   
-  ft const ecl_ech = ecl + ech*(lc/hc); // include the HR cavity error
+  ft const ecl_ech = ecl + ech*(lc_tilted/hc); // include the HR cavity error
   fpi::Arr2D<ft> sinp_lr = fpi::get_psi2(N1,cw+BlueShift,tw,lc_tilted+ecl_ech,betah_lr, psi_lr);
 
   
@@ -640,9 +637,7 @@ void fpi::FPI::dual_fpi_full_complex_individual_der(int const N1, const ft* cons
   
   ft const thr = hr + erh;
   ft const tlr = lr + erl;
-  
-  constexpr ft const dthr_derh = ft(1);
-  constexpr ft const dtlr_derl = ft(1);
+
 
   
   // --- Finesse --- //
@@ -662,9 +657,8 @@ void fpi::FPI::dual_fpi_full_complex_individual_der(int const N1, const ft* cons
   Arr2D<ft> cosp_hr = psi_hr;
   CosMany(NRAYS_HR*N1, &cosp_hr(0,0));
   
-  
-  ft const ecl_ech = ecl + ech*(lc/hc); // include the HR cavity error
-  ft const decl_ech = lc/hc;
+  ft const decl_ech = lc_tilted/hc;
+  ft const ecl_ech = ecl + ech*decl_ech; // include the HR cavity error
 
   fpi::Arr2D<ft> sinp_lr = fpi::get_psi2_der(N1,cw+BlueShift,tw,lc_tilted+ecl_ech,betah_lr, psi_lr, dpsi_lr);
   Arr2D<ft> cosp_lr = psi_lr;
@@ -951,9 +945,6 @@ void fpi::FPI::dual_fpi_conv_complex_der(int const N1, const ft* const tw, ft* c
   
   ft const thr = hr + erh;
   ft const tlr = lr + erl;
-  
-  constexpr ft const dthr_derh = ft(1);
-  constexpr ft const dtlr_derl = ft(1);
 
   
   // --- Finesse --- //
@@ -1247,9 +1238,7 @@ void fpi::FPI::dual_fpi_conv_complex_individual_der(int const N1, const ft* cons
   
   ft const thr = hr + erh;
   ft const tlr = lr + erl;
-  
-  constexpr ft const dthr_derh = ft(1);
-  constexpr ft const dtlr_derl = ft(1);
+
 
   
   // --- Finesse --- //
@@ -1842,8 +1831,6 @@ void fpi::FPI::dual_fpi_ray_complex_individual_der(int const N1, const ft* const
     std::complex<ft>  dhr_dch =  ((hre_real*std::complex<ft>((thr-ft(1))*sinp_hr,(ft(1)+thr)*cosp_hr) -
 					(2*fhr*sinp_hr*cosp_hr/denom_hr) * tr_hr)*dpsi_hr);
       
-
-    std::complex<ft> const dtr_dch = dhr_dch*tr_lr + dlr_dcl * decl_ech * tr_hr;
       
       
       // --- derivative with respect to HR --- //

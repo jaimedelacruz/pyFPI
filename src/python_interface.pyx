@@ -201,7 +201,10 @@ cdef extern from "fpi.hpp" namespace "fpi":
          ft getBlueShift()const;
          void optimize_Zernike();
          void optimize_Zernike_conv();
-         
+         ft get_HRE_cavity()const;
+         ft get_LRE_cavity()const;
+         ft get_LRE_cavity_tilted()const;
+
          
 ctypedef FPI cFPI
 
@@ -1820,6 +1823,21 @@ cdef class CRISP:
     def getBlueShift(self):
         cdef double blueShift = self.cfpi.BlueShift
         return blueShift
+
+    # ------------------------------------------------------
+
+    def getCavitySeparations(self):
+        """
+        Returns hc, lc, lc_tilted in Angstroms
+        lc_tilted is used in the "full" angular integration
+        """
+
+        cdef double hc = self.cfpi.get_HRE_cavity();
+        cdef double lc = self.cfpi.get_LRE_cavity();
+        cdef double lc_tilted = self.cfpi.get_LRE_cavity_tilted();
+
+        return (hc, lc, lc_tilted)
+        
     
 # ********************************************************************************
 

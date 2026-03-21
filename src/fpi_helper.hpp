@@ -312,10 +312,8 @@ namespace fpi{
 	sin2p(nn,ii) = std::sin(phase);
       }
     }				
-
-    sin2p = sin2p*sin2p;
     
-    return sin2p;
+    return sin2p*sin2p;
   }
   // ********************************************************** // 
   
@@ -379,10 +377,8 @@ namespace fpi{
 	dsin2p(nn,ii) = co * si * darg;
       }
     }				
-
-    sin2p = sin2p * sin2p;
     
-    return sin2p;
+    return sin2p * sin2p;
   }
 
   // ********************************************************** // 

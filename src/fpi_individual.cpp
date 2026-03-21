@@ -305,7 +305,7 @@ void fpi::FPI::dual_fpi_full_individual(int const N1, const ft* const tw, ft* co
   fpi::Arr2D<ft> sin2p_hr = fpi::get_psi2(N1,cw+BlueShift,tw,hc+ech,betah_hr);
 
 
-  ft const ecl_ech = ecl + ech*(lc/hc); // include the HR cavity error
+  ft const ecl_ech = ecl + ech*(lc_tilted/hc); // include the HR cavity error
   fpi::Arr2D<ft> sin2p_lr = fpi::get_psi2(N1,cw+BlueShift,tw,lc_tilted+ecl_ech,betah_lr);
 
 
@@ -383,7 +383,7 @@ void fpi::FPI::dual_fpi_full_individual_der(int const N1, const ft* const tw, ft
   fpi::Arr2D<ft> dsin2p_hr, dsin2p_lr;
   fpi::Arr2D<ft> sin2p_hr = fpi::get_psi2_der(N1,cw+BlueShift,tw,hc+ech,betah_hr,dsin2p_hr);
 
-  ft const decl_ech = lc/hc;
+  ft const decl_ech = lc_tilted/hc;
   ft const ecl_ech = ecl + ech*decl_ech; // include the HR cavity error
   fpi::Arr2D<ft> sin2p_lr = fpi::get_psi2_der(N1,cw+BlueShift,tw,lc_tilted+ecl_ech,betah_lr,dsin2p_lr);
 
@@ -418,10 +418,10 @@ void fpi::FPI::dual_fpi_full_individual_der(int const N1, const ft* const tw, ft
 	ft const dtr_lr_derl = - mth::SQ(tr_lr) * dflr_derl * sin2p_lr(n,ww);
 	ft const dtr_hr_derh = - mth::SQ(tr_hr) * dfhr_derh * sin2p_hr(m,ww);
 	
-	ft const dtr_lr_decl = mth::SQ(tr_lr) * flr * dsin2p_lr(n,ww);
+	ft const dtr_lr_decl = -mth::SQ(tr_lr) * flr * dsin2p_lr(n,ww);
 	ft const dtr_lr_dech = dtr_lr_decl * decl_ech;
 
-	ft const dtr_hr_dech = mth::SQ(tr_hr) * fhr * dsin2p_hr(m,ww);
+	ft const dtr_hr_dech = -mth::SQ(tr_hr) * fhr * dsin2p_hr(m,ww);
 
 
 	dtr_derh[ww] += dtr_hr_derh * ibeta;

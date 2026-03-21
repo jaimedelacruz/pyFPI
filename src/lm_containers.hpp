@@ -61,6 +61,8 @@ namespace lm{
     T fx(int const nPar, const T* __restrict__ m_in,
 	 T* const __restrict__ syn, T* const __restrict__ r)const
     {
+      constexpr const bool norm_lr = false;
+      constexpr const bool norm_hr = true;
       
       constexpr T const angle=T(0);
       int const npsf = ifpi.convolver->n1;
@@ -86,13 +88,13 @@ namespace lm{
       // --- calculate transmission profiles --- //
 
       if(fpi_method == 0){
-	ifpi.dual_fpi_ray_individual(npsf, tw, syn, ltr, erh, m[2], ech, m[1], angle, true, false);
+	ifpi.dual_fpi_ray_individual(npsf, tw, syn, ltr, erh, m[2], ech, m[1], angle, norm_lr, norm_hr);
       }else if(fpi_method == 1){
-	ifpi.dual_fpi_conv_complex_individual(npsf, tw, syn, ltr, erh, m[2], ech, m[1], true, false);
+	ifpi.dual_fpi_conv_complex_individual(npsf, tw, syn, ltr, erh, m[2], ech, m[1], norm_lr, norm_hr);
       }else if(fpi_method == 2){
-	ifpi.dual_fpi_full_complex_individual(npsf, tw, syn, ltr, erh, m[2], ech, m[1], true, false);
+	ifpi.dual_fpi_full_complex_individual(npsf, tw, syn, ltr, erh, m[2], ech, m[1], norm_lr, norm_hr);
       }else{
-	ifpi.dual_fpi_full_individual(npsf, tw, syn, ltr, erh, m[2], ech, m[1], true, false);
+	ifpi.dual_fpi_full_individual(npsf, tw, syn, ltr, erh, m[2], ech, m[1], norm_lr, norm_hr);
       }
 
       for(int ii=0; ii<npsf; ++ii){
@@ -122,6 +124,9 @@ namespace lm{
     T fx_dx(int const nPar, const T* const __restrict__ m_in,
 	    T* const __restrict__ syn, T* const __restrict__ r, T* const __restrict__ J)const
     {
+      constexpr const bool norm_lr = false;
+      constexpr const bool norm_hr = true;
+      
       constexpr T const angle=T(0);
       int const npsf = ifpi.convolver->n1;
       int const nDat = this->nDat;
@@ -146,13 +151,13 @@ namespace lm{
       // --- calculate transmission profiles and derivatives --- //
 
       if(fpi_method == 0){
-	ifpi.dual_fpi_ray_individual_der(npsf, tw, syn, ltr, dtr, erh, m[2], ech, m[1], angle, true, false);
+	ifpi.dual_fpi_ray_individual_der(npsf, tw, syn, ltr, dtr, erh, m[2], ech, m[1], angle, norm_lr, norm_hr);
       }else if(fpi_method == 1){
-	ifpi.dual_fpi_conv_complex_individual_der(npsf, tw, syn, ltr, dtr, erh, m[2], ech, m[1], true, false);
+	ifpi.dual_fpi_conv_complex_individual_der(npsf, tw, syn, ltr, dtr, erh, m[2], ech, m[1], norm_lr, norm_hr);
       }else if(fpi_method == 2){
-	ifpi.dual_fpi_full_complex_individual_der(npsf, tw, syn, ltr, dtr, erh, m[2], ech, m[1], true, false);
+	ifpi.dual_fpi_full_complex_individual_der(npsf, tw, syn, ltr, dtr, erh, m[2], ech, m[1], norm_lr, norm_hr);
       }else{
-	ifpi.dual_fpi_full_individual_der(npsf, tw, syn, ltr, dtr, erh, m[2], ech, m[1], true, false);
+	ifpi.dual_fpi_full_individual_der(npsf, tw, syn, ltr, dtr, erh, m[2], ech, m[1], norm_lr, norm_hr);
       }
 
       T* const __restrict__ dtr_decl =  dtr+npsf*3;
@@ -259,6 +264,7 @@ namespace lm{
       container_base<T,U>(nd,iwav,din,sigin,Pi),
       Nreal(1), ifpi(ifpi_in), nfts(infts), fts_x(ifts_x),
       fts_y(ifts_y), tw(itw), fpi_method(ifpi_method), no_pref(npref),ecl(iecl), erl(ierl),
+      
       // --- allocate internal buffers --- //
       m(new T[Pi.size()]()),
       tr(new T[nfts]()),
