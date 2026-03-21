@@ -562,8 +562,11 @@ ft fpi::FPI::getFWHM(int const approximation)const
     std::vector<double> tr1(nwav,0.0);
     
     if(approximation == 1){
-      dual_fpi_conv(nwav, tw.data(), tr.data(), 0.0, 0.0, 0.0 ,0.0, false);
-      dual_fpi_conv(nwav, tw1.data(), tr1.data(), 0.0, 0.0, 0.0 ,0.0, false);
+      dual_fpi_conv_complex(nwav, tw.data(), tr.data(), 0.0, 0.0, 0.0 ,0.0, false);
+      dual_fpi_conv_complex(nwav, tw1.data(), tr1.data(), 0.0, 0.0, 0.0 ,0.0, false);
+    }else if(approximation == 2){
+      dual_fpi_full_complex(nwav, tw.data(), tr.data(), 0.0, 0.0, 0.0 ,0.0, false);
+      dual_fpi_full_complex(nwav, tw1.data(), tr1.data(), 0.0, 0.0, 0.0 ,0.0, false);
     }else{
       dual_fpi_full(nwav, tw.data(), tr.data(), 0.0, 0.0, 0.0 ,0.0, false);
       dual_fpi_full(nwav, tw1.data(), tr1.data(), 0.0, 0.0, 0.0 ,0.0, false);
@@ -798,6 +801,28 @@ ft fpi::FPI::get_HRE_reflectivity()const
 ft fpi::FPI::get_LRE_reflectivity()const
 {
   return lr;
+}
+
+// ********************************************************************* //
+
+ft fpi::FPI::get_HRE_cavity()const
+{
+  return hc;
+}
+
+
+// ********************************************************************* //
+
+ft fpi::FPI::get_LRE_cavity()const
+{
+  return lc;
+}
+
+// ********************************************************************* //
+
+ft fpi::FPI::get_LRE_cavity_tilted()const
+{
+  return lc_tilted;
 }
 
 // ********************************************************************* //
