@@ -88,7 +88,7 @@ namespace lm{
       // --- calculate transmission profiles --- //
 
       if(fpi_method == 0){
-	ifpi.dual_fpi_ray_individual(npsf, tw, syn, ltr, erh, m[2], ech, m[1], angle, norm_lr, norm_hr);
+	ifpi.dual_fpi_ray_complex_individual(npsf, tw, syn, ltr, erh, m[2], ech, m[1], angle, norm_lr, norm_hr);
       }else if(fpi_method == 1){
 	ifpi.dual_fpi_conv_complex_individual(npsf, tw, syn, ltr, erh, m[2], ech, m[1], norm_lr, norm_hr);
       }else if(fpi_method == 2){
@@ -151,7 +151,7 @@ namespace lm{
       // --- calculate transmission profiles and derivatives --- //
 
       if(fpi_method == 0){
-	ifpi.dual_fpi_ray_individual_der(npsf, tw, syn, ltr, dtr, erh, m[2], ech, m[1], angle, norm_lr, norm_hr);
+	ifpi.dual_fpi_ray_complex_individual_der(npsf, tw, syn, ltr, dtr, erh, m[2], ech, m[1], angle, norm_lr, norm_hr);
       }else if(fpi_method == 1){
 	ifpi.dual_fpi_conv_complex_individual_der(npsf, tw, syn, ltr, dtr, erh, m[2], ech, m[1], norm_lr, norm_hr);
       }else if(fpi_method == 2){

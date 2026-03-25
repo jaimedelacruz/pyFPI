@@ -17,7 +17,16 @@
 #include <fftw3.h>
 
 namespace mth{
-
+  
+  // ********************************************************************* //
+  
+  template<typename T>
+  inline void sincos(T const& psi, T* const sinpsi, T* const cospsi)
+  {
+    *sinpsi = std::sin(psi);
+    *cospsi = std::cos(psi);
+  }
+  
   // ********************************************************************* //
 
   template<typename T> constexpr
@@ -573,6 +582,49 @@ namespace mth{
 
   // ********************************************************************* //
   
+  template<typename T>
+  void GaussLegendre(int const n, T const x1, T const x2, T* const x, T* const w)
+  {
+    constexpr T const PI = 3.1415926535897932384626433832;
+    constexpr T const ERROR = std::numeric_limits<T>::epsilon();
+    
+    
+    int const m  = (n + 1) / 2;
+    T const xm = T(0.5) * (x2 + x1);
+    T const xl = T(0.5) * (x2 - x1);
+    T pp = 0, dz;
+    
+    for(int i=0; i<m; ++i){
+      T zz = std::cos(PI * (i + T(0.75)) / (n + T(0.5)));
+      
+      do{
+	T p1 = 1;
+	T p2 = 0;
+	
+	for (int j=1; j<=n; j++) {
+	  T const p3 = p2;
+	  p2 = p1;
+	  p1 = (T(2)*(j - T(0.5))*zz*p2 - (j - T(1))*p3) / j;
+	}
+	
+	pp = n * (zz*p1 - p2) / (zz*zz - T(1));
+	T const z1 = zz;
+	zz = z1 - p1/pp;
+	dz = std::abs(p1/pp);
+      }while (dz > ERROR);
+      
+      // --- fill output --- //
+      
+      x[i] = (xm - xl*zz);
+      w[i] = (T(2) * xl / ((T(1) - zz*zz)*pp*pp));
+      x[n-1 - i] = (xm + xl*zz);
+      w[n-1 - i] = w[i];
+    }
+    
+  }
+  
+  // ********************************************************************* //
+
 }
 
 

@@ -286,22 +286,15 @@ fpi::FPI::FPI(ft const icw, ft const iFR, ft const shr, ft const slr,
 
   
 
-  // --- adjust angles for conv approximation --- //
+  // --- adjust angles for conv approximation, use Gauss-Legendre "open" quadrature  --- //
 
-  ft swang = ft(0);
-  for(int ii=0; ii<fpi::NRAYS; ++ii){
-    ft const iang =  std::sqrt(ft(ii) / ft(fpi::NRAYS - 1) * mth::SQ<ft>(ft(0.5)/FR));
-    calp[ii] = std::cos(iang) * two_pi;
-    
-    wng[ii] = (((ii ==0)||(ii==(fpi::NRAYS-1))) ? 0.5 : 1.0);
-    swang += wng[ii];
-  }
+  mth::GaussLegendre<ft>(fpi::NRAYS, 0.0, 1.0, &calp[0], &wng[0]); 
   
-  swang = ft(1) / swang;
   for(int ii=0; ii<fpi::NRAYS; ++ii){
-    wng[ii] *= swang;
+    ft const iang =  std::sqrt(calp[ii] * mth::SQ<ft>(ft(0.5)/FR)); // now scale the pupil radious using Scharmer's trick
+    calp[ii] = std::cos(iang) * two_pi; // include the 2*pi phase term (from psi / 2).
   }
-  
+
   
   // --- save FSR --- //
   

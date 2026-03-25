@@ -56,9 +56,7 @@ namespace fpi{
   
   // ******************************************************************** //
 
-  //constexpr inline const int NRAYS_HR = 11;
-  //constexpr inline const int NRAYS_LR = 11;
-  constexpr inline const int NRAYS = 7;
+  constexpr inline const int NRAYS = 8;
   constexpr inline const int NL = 2*256;
   constexpr inline const int NR = 248;
   

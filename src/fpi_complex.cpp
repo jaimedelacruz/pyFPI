@@ -53,29 +53,32 @@
 void fpi::FPI::optimize_Zernike()
 {
   constexpr const int N = 201;
-  constexpr const int Ndef = 25;
-  constexpr const ft max_defocus_mm = 6;
+  constexpr const int Ndef = 51;
+  constexpr const ft max_defocus_mm = 10;
 
   
   // --- conversion from mm --- //
   
-  ft const defocus_scl = -PI / (8.0*std::sqrt(3.0)) * mth::SQ(1.0/this->FR) / (this->cw*1.e-8);
+  ft const defocus_scl = PI / (8.0*std::sqrt(3.0)) * mth::SQ(1.0/this->FR) / (this->cw*1.e-8);
   
   std::vector<ft> angles(NRAYS_HR,0.0);
   std::vector<ft> defocus(Ndef,0.0);
   std::vector<ft> pmax(Ndef,0.0);
-  
+  std::vector<ft> zernike(Ndef);
+
   for(int ii=0; ii<Ndef; ++ii){
-    defocus[ii] = ft(ii) / ft(Ndef-1) * max_defocus_mm * defocus_scl; 
+    defocus[ii] = ft(ii) / ft(Ndef-1) * max_defocus_mm * defocus_scl;
   }
 
-  // --- init angles --- //
-
+  // --- init angles and Zernike. The Zernike normalization is absorved
+  //     in the defocus amount, so no need to do it
+  
   for(int ii=0; ii<NRAYS_HR; ++ii){
     angles[ii] = std::acos(this->betah_hr[ii] / (2*PI))*2*this->FR;
+    zernike[ii] = std::sqrt(3.0)*(2.0*mth::SQ(angles[ii])-1.0);
   }
 
-  
+ 
   // --- create a wavelength array --- //
 
   std::vector<ft> tw(N), tr(N);
@@ -93,7 +96,7 @@ void fpi::FPI::optimize_Zernike()
     // --- fill in zern4 terms --- //
 
     for(int ii=0; ii<NRAYS_HR; ++ii)
-      this->zern4[ii] = std::exp(std::complex<ft>(0.0, -defocus[id]*std::sqrt(3.0)*(2*mth::SQ(angles[ii])-1.0)));
+      this->zern4[ii] = std::exp(std::complex<ft>(0.0, defocus[id]*zernike[ii]));
 
     
     // --- calculate profile --- //
@@ -107,13 +110,13 @@ void fpi::FPI::optimize_Zernike()
     }
 
     pmax[id] = ipmax;
-    
+
     if(pmax[id] > tmax){
       tmax = pmax[id];
       itmax = id;
     }
   }
-
+  
   itmax = std::max(itmax-1,0);
 
 
@@ -128,8 +131,7 @@ void fpi::FPI::optimize_Zernike()
   // --- populate the final zern4 --- //
 
   for(int ii=0; ii<NRAYS_HR; ++ii){
-    ft const zernike_defocus = defocus_final*std::sqrt(3.0)*(2*mth::SQ(angles[ii])-1.0);
-    this->zern4[ii] = std::exp(std::complex<ft>(0.0, -zernike_defocus));
+    this->zern4[ii] = std::exp(std::complex<ft>(0.0, defocus_final*zernike[ii]));
   }
 
 }
@@ -139,26 +141,30 @@ void fpi::FPI::optimize_Zernike()
 void fpi::FPI::optimize_Zernike_conv()
 {
   constexpr const int N = 201;
-  constexpr const int Ndef = 25;
-  constexpr const ft max_defocus_mm = 6;
+  constexpr const int Ndef = 51;
+  constexpr const ft max_defocus_mm = 10;
 
   
   // --- conversion from mm --- //
   
-  ft const defocus_scl = -PI / (8.0*std::sqrt(3.0)) * mth::SQ(1.0/this->FR) / (this->cw*1.e-8);
+  ft const defocus_scl = PI / (8.0*std::sqrt(3.0)) * mth::SQ(1.0/this->FR) / (this->cw*1.e-8);
   
   std::vector<ft> angles(fpi::NRAYS,0.0);
   std::vector<ft> defocus(Ndef,0.0);
+  std::vector<ft> zernike(Ndef);
+
   std::vector<ft> pmax(Ndef,0.0);
   
   for(int ii=0; ii<Ndef; ++ii){
     defocus[ii] = ft(ii) / ft(Ndef-1) * max_defocus_mm * defocus_scl; 
   }
 
-  // --- init angles --- //
+  // --- init angles and Zernike. The Zernike normalization is absorved
+  //     in the defocus amount, so no need to do it
 
   for(int ii=0; ii<fpi::NRAYS; ++ii){
     angles[ii] = std::acos(this->calp[ii] / (2*PI))*2*this->FR;
+    zernike[ii] = std::sqrt(3.0)*(2.0*mth::SQ(angles[ii])-1.0);
   }
 
   
@@ -178,16 +184,17 @@ void fpi::FPI::optimize_Zernike_conv()
 
     // --- fill in zern4 terms --- //
 
-    for(int ii=0; ii<fpi::NRAYS; ++ii)
-      this->zern4_conv[ii] = std::exp(std::complex<ft>(0.0, -defocus[id]*std::sqrt(3.0)*(2*mth::SQ(angles[ii])-1.0)));
-
+    for(int ii=0; ii<fpi::NRAYS; ++ii){
+      this->zern4_conv[ii] = std::exp(std::complex<ft>(0.0,defocus[id]*zernike[ii]));
+    }
     
     // --- calculate profile --- //
 
-    dual_fpi_conv_complex(N,tw.data(), tr.data(), 0.0,0.0,0.0,0.0,false);
+    std::memset(tr.data(),0,sizeof(ft)*N);
+    dual_fpi_conv_complex(N, tw.data(), tr.data(), 0.0,0.0,0.0,0.0,false);
 
     ft ipmax = tr[0];
-    
+
     for(int ii=1; ii<N;++ii){
       ipmax = std::max(ipmax, tr[ii]);
     }
@@ -202,20 +209,19 @@ void fpi::FPI::optimize_Zernike_conv()
 
   itmax = std::max(itmax-1,0);
 
-
+  
   // --- now bracket the optimal peak using a parabola fit --- //
 
   std::array<ft,3> c = mth::parab_fit<ft>(&defocus[itmax], &pmax[itmax]);
 
   ft const defocus_final = - 0.5 * c[1] / c[2];
-
   
 
   // --- populate the final zern4 --- //
 
   for(int ii=0; ii<fpi::NRAYS; ++ii){
-    ft const zernike_defocus = defocus_final*std::sqrt(3.0)*(2*mth::SQ(angles[ii])-1.0);
-    this->zern4_conv[ii] = std::exp(std::complex<ft>(0.0, -zernike_defocus));
+    ft const zernike_defocus = defocus_final*zernike[ii];
+    this->zern4_conv[ii] = std::exp(std::complex<ft>(0.0, zernike_defocus));
   }
 
 }
@@ -329,14 +335,6 @@ void SinMany(long const N, ft* const __restrict__ d)
   }   
 }
 
-// ********************************************************************* //
-
-template<typename T>
-inline void sincos(T const& psi, T* const sinpsi, T* const cospsi)
-{
-  *sinpsi = std::sin(psi);
-  *cospsi = std::cos(psi);
-}
 
 // ********************************************************************* //
 
@@ -908,7 +906,7 @@ void fpi::FPI::dual_fpi_conv_complex(int const N1, const ft* const tw, ft* const
       ft const hre_real = cHRE / (ft(1) + fhr * mth::SQ(sinp_hr[ww]));
       std::complex<ft> tr_hr(hre_real*(ft(1)-thr)*cosp_hr[ww], hre_real*(ft(1)+thr)*sinp_hr[ww]);
       
-      tr_nu[ww] += tr_lr*tr_hr*zern4_Wnm;
+      tr_nu[ww] += tr_lr * tr_hr * zern4_Wnm;
     } // ww
   } // n
 
@@ -1127,9 +1125,7 @@ void fpi::FPI::dual_fpi_conv_complex_individual(int const N1, const ft* const tw
 						ft const ecl,  bool const normalize_ltr,
 						bool const normalize_htr)const
 {
-  
-  constexpr std::complex<ft> const zero_complex(ft(0),ft(0));
-  
+    
   // --- Total reflectivity --- //
   
   ft const thr = hr + erh;
@@ -1168,9 +1164,10 @@ void fpi::FPI::dual_fpi_conv_complex_individual(int const N1, const ft* const tw
     
     for(int ww=0; ww<N1; ++ww){
       
-      ft const wav1 = 1.0 / (tw[ww] + cw + BlueShift);
-      sinp_lr[ww] = cosp_lr[ww] = plr * wav1;
-      sinp_hr[ww] = cosp_hr[ww] = phr * wav1;
+      ft const wav1 = (tw[ww] + cw + BlueShift);
+      
+      sinp_lr[ww] = cosp_lr[ww] = plr / wav1;
+      sinp_hr[ww] = cosp_hr[ww] = phr / wav1;
     }
 
     // --- Calculate sines and cosines with vectorized functions --- //
@@ -1232,7 +1229,6 @@ void fpi::FPI::dual_fpi_conv_complex_individual_der(int const N1, const ft* cons
 						    ft const ecl,  bool const normalize_ltr,
 						    bool const normalize_htr)const
 {
-  constexpr std::complex<ft> const zero_complex(ft(0),ft(0));
   
   // --- Total reflectivity --- //
   
@@ -1574,7 +1570,7 @@ void fpi::FPI::dual_fpi_ray_complex_der(int const N1, const ft* const tw,
     ft const dpsi_hr =  dphr_dech * wav1;
     
     ft sinp_hr, sinp_lr, cosp_hr, cosp_lr;
-    sincos(psi_lr, &sinp_lr, &cosp_lr), sincos(psi_hr, &sinp_hr, &cosp_hr);
+    mth::sincos(psi_lr, &sinp_lr, &cosp_lr), mth::sincos(psi_hr, &sinp_hr, &cosp_hr);
 
     ft const denom_lr =  ft(1) + flr * mth::SQ(sinp_lr);     
     ft const lre_real = cLRE / denom_lr;
@@ -1699,7 +1695,7 @@ void fpi::FPI::dual_fpi_ray_complex_individual(int const N1, const ft* const tw,
     ft const psi_hr = phr * wav1;
     
     ft sinp_hr, sinp_lr, cosp_hr, cosp_lr;
-    sincos(psi_lr, &sinp_lr, &cosp_lr), sincos(psi_hr, &sinp_hr, &cosp_hr);
+    mth::sincos(psi_lr, &sinp_lr, &cosp_lr), mth::sincos(psi_hr, &sinp_hr, &cosp_hr);
 
     ft const lre_real = cLRE / (ft(1) + flr * mth::SQ(sinp_lr));
     ft const hre_real = cHRE / (ft(1) + fhr * mth::SQ(sinp_hr));
@@ -1804,7 +1800,7 @@ void fpi::FPI::dual_fpi_ray_complex_individual_der(int const N1, const ft* const
     ft const dpsi_hr =  dphr_dech * wav1;
     
     ft sinp_hr, sinp_lr, cosp_hr, cosp_lr;
-    sincos(psi_lr, &sinp_lr, &cosp_lr), sincos(psi_hr, &sinp_hr, &cosp_hr);
+    mth::sincos(psi_lr, &sinp_lr, &cosp_lr), mth::sincos(psi_hr, &sinp_hr, &cosp_hr);
 
     ft const denom_lr =  ft(1) + flr * mth::SQ(sinp_lr);     
     ft const lre_real = cLRE / denom_lr;

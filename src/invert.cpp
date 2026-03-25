@@ -175,9 +175,9 @@ void fpi::invert_lre_crisp(long const ny, long const nx, long const npar, long c
   constexpr const int max_iter = 40;
   constexpr const ft chi_lim = 0.0;
   constexpr const int delay_bracket = 2;
-  constexpr const ft I_THRES = 8.e-2;
-  constexpr const ft init_lambda = 10.;
-  
+  constexpr const ft I_THRES = 5.e-2;
+  constexpr const ft init_lambda = 20.;
+
   // --- Initialize Levenberg-Marquardt class --- //
   
   int const nthreads = fpis.size();
@@ -227,7 +227,7 @@ void fpi::invert_lre_crisp(long const ny, long const nx, long const npar, long c
 	
 	
 	  inverters[tid]->fitData( *((lm::container_base<ft,float>*)myData), nwav, syn+ipix*nwav, par+ipix*npar, max_iter,
-				   init_lambda, chi_lim,  ft(5.e-3), delay_bracket, false);
+				   init_lambda, chi_lim,  ft(1.e-3), delay_bracket, false);
 	}else{
 	  
 	  // --- Else zero the gain so we can easily create a mask later --- //

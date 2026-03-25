@@ -280,7 +280,7 @@ namespace fpi{
 
 
     for(int nn=0; nn<nrays; ++nn){
-      T const cbeta = h*beta1[nn];//c * std::cos(beta1[nn]);
+      T const cbeta = h*beta1[nn];// beta = 2*pi*std::cos(ang);
       
       for(int ii=0; ii<nw; ++ii){
 	T const phase = cbeta / (w0+dw[ii]);
@@ -305,7 +305,7 @@ namespace fpi{
     
 
     for(int nn=0; nn<nrays; ++nn){
-      T const cbeta = h*beta1[nn];//c * std::cos(beta1[nn]);
+      T const cbeta = h*beta1[nn];// beta = 2*pi*std::cos(ang);
       
       for(int ii=0; ii<nw; ++ii){
 	T const phase = cbeta / (w0+dw[ii]);	
@@ -328,7 +328,7 @@ namespace fpi{
 
     for(int nn=0; nn<nrays; ++nn){
       
-      T const cost =  beta1[nn]; //std::cos(beta1[nn]);
+      T const cost =  beta1[nn]; // beta = 2*pi*std::cos(ang);
       T const cbeta = h * cost;
       T const dcbeta = cost;
       
@@ -362,7 +362,7 @@ namespace fpi{
 
     for(int nn=0; nn<nrays; ++nn){
       
-      T const cost =  beta1[nn]; //std::cos(beta1[nn]);
+      T const cost =  beta1[nn]; // beta = 2*pi*std::cos(ang);
       T const cbeta = h * cost;
       T const dcbeta = cost;
       
