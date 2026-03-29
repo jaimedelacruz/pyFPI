@@ -953,9 +953,11 @@ cdef class CRISP:
                 lc = 295.5e4
                 
         self.cfpi = new cFPI(w0, Fr, hc, lc, hr, lr, nrays_hr, nrays_lr, dont_refocus);
+
+        tmp = self.getCavitySeparations()
         
         if(verbose):
-            print("[info] CRISP{5:d}::__cinit__: C++ object initialized at lambda ={0:8.2f} nm, hr={3:f}, lr={4:f}, Fratio={6:.1f}, nrays_hr={1:d}, nrays_lr={2:d}".format(w0*0.1, nrays_hr, nrays_lr, self.cfpi.hr, self.cfpi.lr, version,Fr))
+            print("[info] CRISP{5:d}::__cinit__: C++ object initialized at lambda ={0:8.2f} nm, hr={3:f}, lr={4:f}, Fratio={6:.1f}, nrays_hr={1:d}, nrays_lr={2:d}, hc={7:.1f} mm, lc={8:.1f}".format(w0*0.1, nrays_hr, nrays_lr, self.cfpi.hr, self.cfpi.lr, version,Fr,tmp[0], tmp[1]))
 
         
     # ------------------------------------------------------

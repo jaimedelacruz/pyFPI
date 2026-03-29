@@ -346,6 +346,7 @@ fpi::FPI::FPI(ft const icw, ft const iFR, ft const shr, ft const slr,
 
 ft fpi::FPI::getBlueShift()const
 {
+  
   // --- For each ray, the blueshift is given by lam = w*cos(theta)*lam0 --- //
 
   ft dlam = ft(0);
@@ -362,6 +363,7 @@ ft fpi::FPI::getBlueShift()const
   
   dlam /= two_pi * norm;
   dlam = (dlam - ft(1)) * cw;
+  
   
   return dlam;
 }
@@ -575,8 +577,8 @@ ft fpi::FPI::getFWHM(int const approximation)const
     double w_blue = 0.0, w_red = 0.0;
     double const tr_mid = tr_ma*0.5;
     
-    mth::interpolation_Linear<int,double>(nwav, tr.data(), tw.data(), 1, &tr_mid, &w_blue);
-    mth::interpolation_Linear<int,double>(nwav, tr1.data(), tw1.data(), 1, &tr_mid, &w_red);
+    mth::interpolation_Hermite<double>(nwav, tr.data(), tw.data(), 1, &tr_mid, &w_blue);
+    mth::interpolation_Hermite<double>(nwav, tr1.data(), tw1.data(), 1, &tr_mid, &w_red);
     
     return w_red-w_blue;
     
