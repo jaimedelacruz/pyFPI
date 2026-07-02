@@ -358,8 +358,8 @@ cdef getCrispVersionParameters(double wav, int version):
         lc = hc*0.38273 # cavity ratio from Pit's measurements # should be ~300.0/787.0
         fr = 140.0
     elif(version == 3): # CHROMIS
-        hr = 0.81
-        lr = 0.71
+        hr = 0.80
+        lr = 0.695
         hc = 358e4
         lc = hc * 0.3745
         fr = 120.0
@@ -495,7 +495,10 @@ def fit_lre_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim=1] si
     cdef double mean_hr =  median(erh[mask])
 
     print("[info] fit_lre_CRISP: ny={0:d}, nx={1:d}, nwav={2:d}, dw_fts={3:f}, fpi_method={4:d}".format(ny,nx,nwav,dw,fpi_method, dont_refocus))
-
+    
+    print("[info] fit_lre_CRISP: Fratio={:.1f}, hc={:.1f}um, hr={:.3f}, lc={:.1f}um, lr={:.3f}"
+          .format(Fr, hc*1.e-4, hr, lc*1.e-4, lr))
+    
     lr += mean_lr
     hr += mean_hr
 
