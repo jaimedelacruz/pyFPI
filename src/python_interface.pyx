@@ -878,6 +878,7 @@ def fit_all_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] dh, ar[ft,ndim=1] s
 
     
     cdef ar[ft,ndim=1] tw = zeros(npsf)
+    
     for ii in range(npsf):
         tw[ii] = <ft>(ii-npsf//2)*dwh
 
