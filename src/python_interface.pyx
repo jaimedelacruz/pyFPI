@@ -357,6 +357,12 @@ cdef getCrispVersionParameters(double wav, int version):
         hc = 787e4
         lc = hc*0.38273 # cavity ratio from Pit's measurements # should be ~300.0/787.0
         fr = 140.0
+    elif(version == 3): # CHROMIS
+        hr = 0.81
+        lr = 0.71
+        hc = 358e4
+        lc = hc * 0.3745
+        fr = 120.0
     else:
         getReflectivities_CRISP1(wav, hr, lr)
         hc = 787e4
@@ -702,11 +708,7 @@ def fit_hre_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim=1] si
     mask = d[:,:,nwav//2] / median(d[:,:,nwav//2])  > 0.08
     cdef double mean_hr = median(ascontiguousarray(par[:,:,2][mask]))
     cdef double mean_lr = median(erl[mask])
-    
-    print("[info] fit_hre_CRISP: Fratio={:.1f}, hc={:.1f}um, hr={:.3f}, lc={:.1f}um, lr={:.3f}"
-          .format(Fr, hc*1.e-4, hr, lc*1.e-4, lr))
 
-    
     par[:,:,2] -= mean_hr
     erl -= mean_lr
     
@@ -719,7 +721,11 @@ def fit_hre_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim=1] si
     cdef vector[cFPI*] fpis;
     cdef int ii = 0
 
+    
+    print("[info] fit_hre_CRISP: Fratio={:.1f}, hc={:.1f}um, hr={:.3f}, lc={:.1f}um, lr={:.3f}"
+          .format(Fr, hc*1.e-4, hr, lc*1.e-4, lr))
 
+    
     for ii in range(nthreads):
         fpis.push_back(new cFPI(w0, Fr, hc, lc, hr, lr, nrays_hr, nrays_lr, dont_refocus));
 
