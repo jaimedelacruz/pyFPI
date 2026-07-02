@@ -358,10 +358,10 @@ cdef getCrispVersionParameters(double wav, int version):
         lc = hc*0.38273 # cavity ratio from Pit's measurements # should be ~300.0/787.0
         fr = 140.0
     elif(version == 3): # CHROMIS
-        hr = 0.80
-        lr = 0.695
+        hr = 0.79
+        lr = 0.72
         hc = 358e4
-        lc = hc * 0.3745
+        lc = hc * 0.3745 # Co-tuning measured by P. Suetterlin
         fr = 120.0
     else:
         getReflectivities_CRISP1(wav, hr, lr)
