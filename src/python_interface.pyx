@@ -358,15 +358,15 @@ cdef getCrispVersionParameters(double wav, int version):
         lc = hc*0.38273 # cavity ratio from Pit's measurements # should be ~300.0/787.0
         fr = 140.0
     elif(version == 3): # CHROMIS
-        hr = 0.79
-        lr = 0.72
-        hc = 358e4
+        hr = 0.81
+        lr = 0.71
+        hc = 358.0e4
         lc = hc * 0.3745 # Co-tuning measured by P. Suetterlin
         fr = 120.0
     else:
         getReflectivities_CRISP1(wav, hr, lr)
         hc = 787e4
-        lc = 295.5e4
+        lc = hc*0.38273
         fr = 165.0
 
     return fr, hc, lc, hr, lr
@@ -936,38 +936,32 @@ cdef class CRISP:
                   double hr = -1.0, double lr = -1.0, int nrays_hr = 5, int nrays_lr = 5, verbose = True,
                   int version = 2, bool dont_refocus = False):
 
-        cdef double dum = 0;
+        cdef double dum = 0
+        cdef double ofr = 0
+        cdef double ohc = 0
+        cdef double olc = 0
+        cdef double ohr = 0
+        cdef double olr = 0
 
-        if(version == 2):
-            if(hr < 0.0):
-                getReflectivities_CRISP2(w0, hr, dum)
-            if(lr < 0.0):
-                getReflectivities_CRISP2(w0, dum, lr)
-            if(Fr < 0.0):
-                Fr = 140.0
-            if(hc < 0.0):
-                hc = 787e4
-            if(lc < 0.0):
-                lc = 300e4
-    
-        else:            
-            if(hr < 0.0):
-                getReflectivities_CRISP1(w0, hr, dum)
-            if(lr < 0.0):
-                getReflectivities_CRISP1(w0, dum, lr)
-            if(Fr < 0.0):
-                Fr = 165.0
-            if(hc < 0.0):
-                hc = 787e4
-            if(lc < 0.0):
-                lc = 295.5e4
-                
+        ofr, ohc, olc, ohr, olr = getCrispVersionParameters(w0, version)
+
+        if(hr < 0.0):
+            hr = ohr
+        if(lr < 0.0):
+            lr  = olr
+        if(Fr < 0.0):
+            Fr = ofr
+        if(hc < 0.0):
+            hc = ohc
+        if(lc < 0.0):
+            lc = olc
+   
         self.cfpi = new cFPI(w0, Fr, hc, lc, hr, lr, nrays_hr, nrays_lr, dont_refocus);
 
         tmp = self.getCavitySeparations()
         
         if(verbose):
-            print("[info] CRISP{5:d}::__cinit__: C++ object initialized at lambda ={0:8.2f} nm, hr={3:f}, lr={4:f}, Fratio={6:.1f}, nrays_hr={1:d}, nrays_lr={2:d}, hc={7:.1f} mm, lc={8:.1f}".format(w0*0.1, nrays_hr, nrays_lr, self.cfpi.hr, self.cfpi.lr, version,Fr,tmp[0], tmp[1]))
+            print(r"[info] CRISP{5:d}::__cinit__: C++ object initialized at lambda ={0:8.2f} nm, hr={3:f}, lr={4:f}, Fratio={6:.1f}, nrays_hr={1:d}, nrays_lr={2:d}, hc={7:.1f} um, lc={8:.1f} um".format(w0*0.1, nrays_hr, nrays_lr, self.cfpi.hr, self.cfpi.lr, version,Fr,tmp[0]*1.e-4, tmp[1]*1.e-4))
 
         
     # ------------------------------------------------------
