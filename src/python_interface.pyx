@@ -486,8 +486,10 @@ def fit_lre_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim=1] si
     cdef long nx = d.shape[1]
     cdef long nwav = wav.size
     cdef long npar = par.shape[2]
-    cdef ft dw = wav[1] - wav[0]
+    
+    cdef ft dw = wav[1] - wav[0]    
 
+    
     Fr, hc, lc, hr, lr = getCrispVersionParameters(w0, CRISP_version)
     mask = d[:,:,nwav//2] / median(d[:,:,nwav//2])  > 0.08 
 
@@ -495,7 +497,6 @@ def fit_lre_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim=1] si
     cdef double mean_hr =  median(erh[mask])
 
     print("[info] fit_lre_CRISP: ny={0:d}, nx={1:d}, nwav={2:d}, dw_fts={3:f}, fpi_method={4:d}".format(ny,nx,nwav,dw,fpi_method, dont_refocus))
-    
     print("[info] fit_lre_CRISP: Fratio={:.1f}, hc={:.1f}um, hr={:.3f}, lc={:.1f}um, lr={:.3f}"
           .format(Fr, hc*1.e-4, hr, lc*1.e-4, lr))
     
@@ -695,7 +696,7 @@ def fit_hre_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim=1] si
                   ar[int,ndim=1] fixed, ar[float,ndim=2] ecl, ar[float,ndim=2] erl, \
                   int fpi_method = 2, int nthreads=8, \
                   int nrays_hr = 5, int nrays_lr = 5, bool no_prefilter=False,
-                  int CRISP_version=2, bool use_observed_grid = False):
+                  int CRISP_version=2, bool use_observed_grid = False, fts_dw=None):
 
     cdef long ny = d.shape[0]
     cdef long nx = d.shape[1]
@@ -704,8 +705,8 @@ def fit_hre_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim=1] si
     cdef long nfts = ftsx.size
     cdef ft dw = (ftsx[10] - ftsx[0]) * 0.1
     cdef bool dont_refocus = False
-
-
+    
+    
     Fr, hc, lc, hr, lr = getCrispVersionParameters(w0, CRISP_version)
     
     mask = d[:,:,nwav//2] / median(d[:,:,nwav//2])  > 0.08
@@ -714,6 +715,11 @@ def fit_hre_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim=1] si
 
     par[:,:,2] -= mean_hr
     erl -= mean_lr
+
+
+    print("[info] fit_hre_CRISP: Fratio={:.1f}, hc={:.1f}um, hr={:.3f}, lc={:.1f}um, lr={:.3f}"
+          .format(Fr, hc*1.e-4, hr, lc*1.e-4, lr))
+
     
     lr += mean_lr
     hr += mean_hr
@@ -725,9 +731,6 @@ def fit_hre_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim=1] si
     cdef int ii = 0
 
     
-    print("[info] fit_hre_CRISP: Fratio={:.1f}, hc={:.1f}um, hr={:.3f}, lc={:.1f}um, lr={:.3f}"
-          .format(Fr, hc*1.e-4, hr, lc*1.e-4, lr))
-
     
     for ii in range(nthreads):
         fpis.push_back(new cFPI(w0, Fr, hc, lc, hr, lr, nrays_hr, nrays_lr, dont_refocus));
@@ -737,6 +740,10 @@ def fit_hre_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim=1] si
     
     cdef double FWHM = fpis[0].getFWHM(2);
     cdef int nfts_new = int(round((ftsx[-1]-ftsx[0]) / max(dw, FWHM*0.2) + 1))
+ 
+    
+    if(fts_dw is not None):
+        nfts_new = int(round((ftsx[-1]-ftsx[0]) / float(fts_dw) + 1))
 
     
     # --- Or (upon request), use the observed wavelength grid --- 
@@ -749,7 +756,7 @@ def fit_hre_CRISP(ft w0, ar[ft,ndim=3] par, ar[float,ndim=3] d, ar[ft,ndim=1] si
     cdef ar[ft,ndim=1] ftsy_new = Hermite(ftsx,ftsy,ftsx_new)
     dw = ftsx_new[1]-ftsx_new[0]
     
-    print(ftsx_new[0], ftsx_new[-1], dw)
+    #print(ftsx_new[0], ftsx_new[-1], dw)
     
     cdef ar[ft,ndim=1] ftsx_cw = ftsx_new - w0
     cdef ar[ft,ndim=1] wav_cw = wav - w0
