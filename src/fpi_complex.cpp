@@ -41,7 +41,6 @@
 #include <vector>
 #include <cstdio>
 #include <complex>
-#include <format>
 #include <iostream>
 
 #include "fpi.hpp"

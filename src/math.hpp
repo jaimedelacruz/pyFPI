@@ -272,10 +272,10 @@ namespace mth{
 
       
 
-      /* --- take the conjugate --- */
+      /* --- because we did not flip the psf, take the conjugate --- */
 
       for(int ii=0; ii<nft; ++ii)
-	otf[ii] = std::conj(otf[ii]);
+      	otf[ii] = std::conj(otf[ii]);
       
       delete [] ppsf;
 
@@ -501,7 +501,7 @@ namespace mth{
   T cent_deriv_steffen(T const odx,T const dx, T const yu, T const y0, T const yd)
   {
     /* --- Derivatives from Steffen (1990) --- */
-    
+
     const T S0 = (yd - y0) / dx;
     const T Su = (y0 - yu) / odx;
     const T P0 = std::abs((Su*dx + S0*odx) / (odx+dx)) * 0.5;
